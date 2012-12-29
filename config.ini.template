@@ -1,0 +1,9 @@
+[account]
+username = username
+password = password
+
+[misc]
+data_dir = /var/neopets/username
+
+[logging]
+level = INFO
