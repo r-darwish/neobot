@@ -1,5 +1,6 @@
 import os
 import logging
+from collections import namedtuple
 from urlparse import urlparse
 from urllib import urlencode
 from zope.interface import implements
@@ -11,6 +12,9 @@ from twisted.web.client import Agent, ResponseDone
 from twisted.web.http_headers import Headers
 
 
+RequestData = namedtuple('RequestData', ('url', 'referer', 'data'))
+
+
 class UnknownHttpCodeError(Exception):
     def __init__(self, code):
         super(UnknownHttpCodeError, self).__init__(
@@ -19,7 +23,8 @@ class UnknownHttpCodeError(Exception):
 
 
 class PageGetter(Protocol):
-    def __init__(self):
+    def __init__(self, request_data):
+        self._request_data = request_data
         self._finished = defer.Deferred()
         self._buffer = ''
 
@@ -32,7 +37,7 @@ class PageGetter(Protocol):
 
     def connectionLost(self, reason=connectionDone):
         reason.trap(ResponseDone)
-        self._finished.callback(self._buffer)
+        self._finished.callback((self._buffer, self._request_data))
 
 
 class StringProducer(object):
@@ -63,10 +68,12 @@ class Browser(object):
         'Content-Type' : ['application/x-www-form-urlencoded']
     }
 
-    def __init__(self):
+    def __init__(self, page_archiver):
         self._cookies = dict()
         self._agent = Agent(reactor)
         self._logger = logging.getLogger(__name__)
+        self._page_archiver = page_archiver
+        self._logger.info('Using page archiver: %s', page_archiver is not None)
 
     def get(self, url, referer=None):
         self._logger.debug('Fetching %s', url)
@@ -80,7 +87,8 @@ class Browser(object):
             method='GET',
             uri=url,
             headers=Headers(headers))
-        d.addCallback(self._on_connected, urlparse(url))
+        d.addCallback(self._on_connected, RequestData(
+            urlparse(url), referer, None))
         d.addErrback(self._on_error, url)
         return d
 
@@ -97,11 +105,12 @@ class Browser(object):
             url,
             Headers(headers),
             StringProducer(encoded_data) if encoded_data else None)
-        d.addCallback(self._on_connected, urlparse(url))
+        d.addCallback(self._on_connected, RequestData(
+            urlparse(url), referer, data))
         d.addErrback(self._on_error, url)
         return d
 
-    def _on_connected(self, result, url):
+    def _on_connected(self, result, request_data):
         if result.headers.hasHeader('Set-Cookie'):
             for cookie in result.headers.getRawHeaders('Set-Cookie'):
                 kv = cookie.split(';')[0]
@@ -109,6 +118,7 @@ class Browser(object):
                 self._cookies[key] = value
 
         if result.code == 302:
+            url = request_data.url
             redirection = result.headers.getRawHeaders('location')[0]
             if redirection.startswith('/'):
                 new_location = 'http://%s%s' % (url.hostname, redirection)
@@ -119,11 +129,19 @@ class Browser(object):
             self._logger.debug('Redirected to %s', new_location)
             return self.get(new_location)
         elif result.code == 200:
-            pg = PageGetter()
+            pg = PageGetter(request_data)
             result.deliverBody(pg)
+            pg.finished.addCallback(self._on_finished)
             return pg.finished
         else:
             raise UnknownHttpCodeError(result.code)
+
+    def _on_finished(self, result):
+        page, request_data = result
+        if self._page_archiver:
+            self._page_archiver.archive(
+                page, request_data.url, request_data.data, request_data.referer)
+        return page
 
     def _on_error(self, error, url):
         self._logger.error('Error fetching %s: %s', error, url)

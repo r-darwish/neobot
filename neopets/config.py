@@ -3,7 +3,7 @@ from collections import namedtuple
 from ConfigParser import SafeConfigParser
 
 Account = namedtuple('Account', ['username', 'password'])
-Misc = namedtuple('Misc', ['data_dir'])
+Misc = namedtuple('Misc', ['data_dir', 'page_archiver'])
 Logging = namedtuple('Logging', ['level'])
 
 
@@ -43,7 +43,8 @@ class Config(object):
             cp.get('account', 'password'))
 
         misc = Misc(
-            os.path.expandvars(cp.get('misc', 'data_dir')))
+            os.path.expandvars(cp.get('misc', 'data_dir')),
+            cp.getboolean('misc', 'page_archiver'))
 
         logging = Logging(
             cp.get('logging', 'level'))

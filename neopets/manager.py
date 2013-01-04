@@ -6,6 +6,7 @@ from neopets.account import Account
 from neopets.common import PageParseError
 from neopets import games
 from neopets import dailies
+from neopets.page_archiver import PageArchiver
 
 
 class Manager(object):
@@ -15,9 +16,19 @@ class Manager(object):
         self._bad_pages_dir = os.path.join(
             self._config.misc.data_dir, 'bad_pages')
 
+        if self._config.misc.page_archiver:
+            self._pages_dir = os.path.join(
+                self._config.misc.data_dir, 'pages')
+            page_archiver = PageArchiver(
+                self._pages_dir)
+        else:
+            self._pages_dir = None
+            page_archiver = None
+
         self._account = Account(
             self._config.account.username,
-            self._config.account.password)
+            self._config.account.password,
+            page_archiver)
 
         self._finished = Deferred()
 
@@ -29,10 +40,18 @@ class Manager(object):
             games.HideNSeek(self._account),
         ]
 
-    def run(self):
-        if not os.path.isdir(self._bad_pages_dir):
-            os.mkdir(self._bad_pages_dir)
+    @staticmethod
+    def _create_directory(directory):
+        if directory is None:
+            return
 
+        if not os.path.isdir(directory):
+            os.mkdir(directory)
+
+    def run(self):
+        for directory in (self._bad_pages_dir,
+                          self._pages_dir):
+            self._create_directory(directory)
 
         self._run_next_task()
         return self._finished

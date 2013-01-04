@@ -10,9 +10,9 @@ class LoginError(Exception):
 
 
 class Account(object):
-    def __init__(self, username, password):
+    def __init__(self, username, password, page_archiver):
         self._logger = logging.getLogger(__name__)
-        self._browser = Browser()
+        self._browser = Browser(page_archiver)
         self._username = username
         self._password = password
 

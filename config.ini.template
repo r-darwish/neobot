@@ -4,6 +4,7 @@ password = password
 
 [misc]
 data_dir = /var/neopets/username
+page_archiver = False
 
 [logging]
 level = INFO
