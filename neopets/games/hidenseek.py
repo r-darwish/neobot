@@ -7,6 +7,7 @@ class HideNSeek(object):
     _WIN_RE = re.compile(r'you will have to refresh the main page to see your winnings!')
 
     def __init__(self, account):
+        self._logger = logging.getLogger(__name__)
         self._account = account
         self._links = None
 
@@ -14,7 +15,7 @@ class HideNSeek(object):
         return 'Hide & Seek'
 
     def run(self):
-        logging.info('Starting Hide & Seek')
+        self._logger.info('Starting Hide & Seek')
         return self._start_game()
 
     def _start_game(self):
@@ -49,7 +50,7 @@ class HideNSeek(object):
 
     def _on_link(self, page):
         if 0 == len(page):
-            logging.warning('Zero length page')
+            self._logger.warning('Zero length page')
             return self._try_link()
 
         if page.find(text='(you did not find xpsyghost... click here to go back)') or \
@@ -57,7 +58,7 @@ class HideNSeek(object):
             return self._try_link()
 
         if page.find(text='Im SO BORED of Kacheek Seek... let\'s play something else!'):
-            logging.info('Done Playing')
+            self._logger.info('Done Playing')
             return
 
         if not page.find(text=self._WIN_RE):
@@ -65,5 +66,5 @@ class HideNSeek(object):
 
         b = page.findAll('b')
 
-        logging.info('Won %s NP', b[1].text)
+        self._logger.info('Won %s NP', b[1].text)
         return self._on_logged_in(page)

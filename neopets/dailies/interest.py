@@ -5,6 +5,7 @@ class Interest(object):
     _COLLECT_BUTTON = re.compile(r'Collect Interest.*')
 
     def __init__(self, account):
+        self._logger = logging.getLogger(__name__)
         self._account = account
 
     def run(self):
@@ -15,7 +16,7 @@ class Interest(object):
     def _on_bank_page(self, page):
         collect_button = page.find('input', value=self._COLLECT_BUTTON)
         if not collect_button:
-            logging.info('No collect button is present')
+            self._logger.info('No collect button is present')
             return
 
         d = self._account.post('process_bank.phtml',
@@ -24,7 +25,7 @@ class Interest(object):
         return d
 
     def _on_submit(self, _):
-        logging.info('Done')
+        self._logger.info('Done')
 
     def __str__(self):
         return 'Daily interest'

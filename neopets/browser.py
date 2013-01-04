@@ -66,9 +66,10 @@ class Browser(object):
     def __init__(self):
         self._cookies = dict()
         self._agent = Agent(reactor)
+        self._logger = logging.getLogger(__name__)
 
     def get(self, url, referer=None):
-        logging.debug('Fetching %s', url)
+        self._logger.debug('Fetching %s', url)
         headers = dict(self._HEADERS)
         headers['Cookie'] = [';'.join([key + '=' + value for key, value
                                        in self._cookies.iteritems()])]
@@ -84,7 +85,7 @@ class Browser(object):
         return d
 
     def post(self, url, data, referer=None):
-        logging.debug('Posting to %s: %s', url, data)
+        self._logger.debug('Posting to %s: %s', url, data)
         headers = dict(self._POST_HEADERS)
         headers['Cookie'] = [';'.join([key + '=' + value for key, value
                                        in self._cookies.iteritems()])]
@@ -115,7 +116,7 @@ class Browser(object):
                 new_location = 'http://%s%s/%s' % (
                     url.hostname, os.path.split(url.path)[0],
                     redirection)
-            logging.debug('Redirected to %s', new_location)
+            self._logger.debug('Redirected to %s', new_location)
             return self.get(new_location)
         elif result.code == 200:
             pg = PageGetter()
@@ -125,4 +126,4 @@ class Browser(object):
             raise UnknownHttpCodeError(result.code)
 
     def _on_error(self, error, url):
-        logging.error('Error fetching %s: %s', error, url)
+        self._logger.error('Error fetching %s: %s', error, url)

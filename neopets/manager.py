@@ -10,6 +10,7 @@ from neopets import dailies
 
 class Manager(object):
     def __init__(self, config):
+        self._logger = logging.getLogger(__name__)
         self._config = config
         self._bad_pages_dir = os.path.join(
             self._config.misc.data_dir, 'bad_pages')
@@ -38,7 +39,7 @@ class Manager(object):
 
     def _run_next_task(self):
         if not self._tasks:
-            logging.info('No more tasks')
+            self._logger.info('No more tasks')
             self._finished.callback(None)
             return
 
@@ -56,11 +57,11 @@ class Manager(object):
             tb_file.write(traceback)
 
     def _on_task_done(self, _, task_name):
-        logging.info('Task %s finished successfully', task_name)
+        self._logger.info('Task %s finished successfully', task_name)
         return self._run_next_task()
 
     def _on_task_error(self, error, task_name):
-        logging.error("Task %s failed: %s", task_name, error)
+        self._logger.error("Task %s failed: %s", task_name, error)
 
         e = error.value
         if type(e) is PageParseError:

@@ -244,6 +244,7 @@ class Cliffhanger(object):
     ]
 
     def __init__(self, account):
+        self._logger = logging.getLogger(__name__)
         self._account = account
         self._np_earned = 0
         self._round = 1
@@ -258,12 +259,12 @@ class Cliffhanger(object):
         return d
 
     def _on_start_game(self, page):
-        logging.info('Cliffhanger start!')
+        self._logger.info('Cliffhanger start!')
         return self._start_round(page)
 
     def _start_round(self, page):
         self._before = get_np(page)
-        logging.debug('Starting round %d (NP: %d)', self._round, self._before)
+        self._logger.debug('Starting round %d (NP: %d)', self._round, self._before)
         d = self._account.post('games/cliffhanger/process_cliffhanger.phtml',
                                dict(start_game='true', game_skill='3'))
         d.addCallback(self._solve)
@@ -294,7 +295,7 @@ class Cliffhanger(object):
             raise MultipleAnswersError(possible_answers)
 
         answer = possible_answers[0]
-        logging.debug('Answer is \'%s\'', answer)
+        self._logger.debug('Answer is \'%s\'', answer)
 
         d = self._account.post('games/cliffhanger/process_cliffhanger.phtml',
                                dict(solve_puzzle=answer))
@@ -303,14 +304,14 @@ class Cliffhanger(object):
 
     def _solved(self, page):
         if page.find(text='You win!!!'):
-            logging.info("Won!")
+            self._logger.info("Won!")
         else:
-            logging.info("Lost!")
+            self._logger.info("Lost!")
 
         np = get_np(page)
         if np != self._before:
             self._round += 1
-            logging.info('Going for another round')
+            self._logger.info('Going for another round')
             return self._start_round(page)
         else:
-            logging.info('Done for today')
+            self._logger.info('Done for today')

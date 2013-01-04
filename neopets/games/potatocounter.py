@@ -7,6 +7,7 @@ class PotatoCounter(object):
     _POTATO_ATTRS = dict(src=_POTATO_RE)
 
     def __init__(self, account):
+        self._logger = logging.getLogger(__name__)
         self._account = account
 
     def __str__(self):
@@ -30,7 +31,7 @@ class PotatoCounter(object):
     def _on_submit(self, page):
         if page.find(
                 text='Arr, you can only guess me potatoes three times a day!'):
-            logging.info('Done playing')
+            self._logger.info('Done playing')
             return
 
         import ipdb

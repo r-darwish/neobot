@@ -11,6 +11,7 @@ class LoginError(Exception):
 
 class Account(object):
     def __init__(self, username, password):
+        self._logger = logging.getLogger(__name__)
         self._browser = Browser()
         self._username = username
         self._password = password
@@ -42,7 +43,7 @@ class Account(object):
         if not soup.find('a', text='Log in'):
             return soup
 
-        logging.info('Need to login. Using account %s', self._username)
+        self._logger.info('Need to login. Using account %s', self._username)
         data = dict(username=self._username, password=self._password,
                     destination=soup.find(
                         'input', attrs=dict(name='destination'))['value'])
