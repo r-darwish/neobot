@@ -2,33 +2,36 @@ import logging
 import time
 import os
 from twisted.internet.defer import Deferred
-from account import Account
-from games import *
-from dailies import *
-from common import PageParseError
+from neopets.account import Account
+from neopets.common import PageParseError
+from neopets import games
+from neopets import dailies
+
 
 class Manager(object):
     def __init__(self, config):
         self._config = config
-
-    def run(self):
         self._bad_pages_dir = os.path.join(
             self._config.misc.data_dir, 'bad_pages')
-        if not os.path.isdir(self._bad_pages_dir):
-            os.mkdir(self._bad_pages_dir)
 
-        account = Account(
+        self._account = Account(
             self._config.account.username,
             self._config.account.password)
 
         self._finished = Deferred()
 
         self._tasks = [
-            Interest(account),
-            Tombola(account),
-            Cliffhanger(account),
-            HideNSeek(account),
+            dailies.Interest(self._account),
+            dailies.Tombola(self._account),
+            games.Cliffhanger(self._account),
+            games.HideNSeek(self._account),
         ]
+
+
+    def run(self):
+        if not os.path.isdir(self._bad_pages_dir):
+            os.mkdir(self._bad_pages_dir)
+
 
         self._run_next_task()
         return self._finished
@@ -52,7 +55,7 @@ class Manager(object):
         with open(name + '.tbk', 'w') as tb_file:
             tb_file.write(traceback)
 
-    def _on_task_done(self, result, task_name):
+    def _on_task_done(self, _, task_name):
         logging.info('Task %s finished successfully', task_name)
         return self._run_next_task()
 

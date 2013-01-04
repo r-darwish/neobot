@@ -23,7 +23,7 @@ class Interest(object):
         d.addCallback(self._on_submit)
         return d
 
-    def _on_submit(self, page):
+    def _on_submit(self, _):
         logging.info('Done')
 
     def __str__(self):

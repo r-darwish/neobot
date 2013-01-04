@@ -1,5 +1,6 @@
 class PageParseError(Exception):
     def __init__(self, page):
+        super(PageParseError, self).__init__()
         self.page = page
 
 

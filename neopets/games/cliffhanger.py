@@ -5,7 +5,7 @@ from neopets.common import PageParseError, get_np
 
 class UnknownAnswerError(Exception):
     def __init__(self, pattern):
-        super(UnknownAnswer, self).__init__(
+        super(UnknownAnswerError, self).__init__(
             'Unknown answer for pattern %s' % (pattern, ))
         self.pattern = pattern
 
@@ -247,6 +247,7 @@ class Cliffhanger(object):
         self._account = account
         self._np_earned = 0
         self._round = 1
+        self._before = None
 
     def __str__(self):
         return 'Cliffhanger'
@@ -293,7 +294,7 @@ class Cliffhanger(object):
             raise MultipleAnswersError(possible_answers)
 
         answer = possible_answers[0]
-        logging.debug('Answer is \'%s\'' % (answer, ))
+        logging.debug('Answer is \'%s\'', answer)
 
         d = self._account.post('games/cliffhanger/process_cliffhanger.phtml',
                                dict(solve_puzzle=answer))

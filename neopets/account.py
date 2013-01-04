@@ -1,11 +1,11 @@
 import logging
-from twisted.internet import defer
-from browser import Browser
 from BeautifulSoup import BeautifulSoup
+from neopets.browser import Browser
 
 
-class LoginError(object):
+class LoginError(Exception):
     def __init__(self, page):
+        super(LoginError, self).__init__()
         self.page = page
 
 
@@ -44,7 +44,8 @@ class Account(object):
 
         logging.info('Need to login. Using account %s', self._username)
         data = dict(username=self._username, password=self._password,
-                    destination=soup.find('input', attrs=dict(name='destination'))['value'])
+                    destination=soup.find(
+                        'input', attrs=dict(name='destination'))['value'])
         d = self._browser.post('http://www.neopets.com/login.phtml', data)
         d.addCallback(self._on_login)
         return d

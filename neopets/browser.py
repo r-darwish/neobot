@@ -6,9 +6,8 @@ from zope.interface import implements
 from twisted.web.iweb import IBodyProducer
 from twisted.internet import reactor, defer
 from twisted.internet.defer import succeed
-from twisted.internet.protocol import Protocol
+from twisted.internet.protocol import Protocol, connectionDone
 from twisted.web.client import Agent, ResponseDone
-from twisted.web.client import RedirectAgent, CookieAgent
 from twisted.web.http_headers import Headers
 
 
@@ -28,10 +27,10 @@ class PageGetter(Protocol):
     def finished(self):
         return self._finished
 
-    def dataReceived(self, bytes):
-        self._buffer += bytes
+    def dataReceived(self, data):
+        self._buffer += data
 
-    def connectionLost(self, reason):
+    def connectionLost(self, reason=connectionDone):
         reason.trap(ResponseDone)
         self._finished.callback(self._buffer)
 

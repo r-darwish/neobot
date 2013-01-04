@@ -8,6 +8,7 @@ class HideNSeek(object):
 
     def __init__(self, account):
         self._account = account
+        self._links = None
 
     def __str__(self):
         return 'Hide & Seek'
@@ -21,7 +22,7 @@ class HideNSeek(object):
         d.addCallback(self._on_logged_in)
         return d
 
-    def _on_logged_in(self, page):
+    def _on_logged_in(self, _):
         d = self._account.get('games/hidenseek/27.phtml')
         d.addCallback(self._on_start_game)
         return d
