@@ -127,3 +127,4 @@ class Browser(object):
 
     def _on_error(self, error, url):
         self._logger.error('Error fetching %s: %s', error, url)
+        return error
