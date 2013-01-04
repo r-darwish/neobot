@@ -23,10 +23,10 @@ class Manager(object):
         self._tasks = [
             dailies.Interest(self._account),
             dailies.Tombola(self._account),
+            games.PotatoCounter(self._account),
             games.Cliffhanger(self._account),
             games.HideNSeek(self._account),
         ]
-
 
     def run(self):
         if not os.path.isdir(self._bad_pages_dir):
