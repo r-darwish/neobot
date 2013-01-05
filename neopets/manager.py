@@ -7,6 +7,7 @@ from neopets.common import PageParseError
 from neopets import games
 from neopets import dailies
 from neopets.page_archiver import PageArchiver
+from neopets.browser import Browser
 
 
 class Manager(object):
@@ -30,10 +31,14 @@ class Manager(object):
             self._config.account.password,
             page_archiver)
 
+        self._outside_browser = Browser(
+            page_archiver)
+
         self._finished = Deferred()
 
         self._tasks = [
             dailies.Interest(self._account),
+            games.DailyPuzzle(self._account, self._outside_browser),
             dailies.Tombola(self._account),
             games.PotatoCounter(self._account),
             games.Cliffhanger(self._account),
