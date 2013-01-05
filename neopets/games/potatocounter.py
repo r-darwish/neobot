@@ -1,10 +1,12 @@
 import re
 import logging
+from neopets.common import PageParseError
 
 
 class PotatoCounter(object):
     _POTATO_RE = re.compile(r'.*potato[0-9]\.gif')
     _POTATO_ATTRS = dict(src=_POTATO_RE)
+    _WINNING_RE = re.compile(r'which means you win')
 
     def __init__(self, account):
         self._logger = logging.getLogger(__name__)
@@ -34,5 +36,11 @@ class PotatoCounter(object):
             self._logger.info('Done playing')
             return
 
-        import ipdb
-        ipdb.set_trace()
+        winning = page.find(text=self._WINNING_RE)
+        if not winning:
+            raise PageParseError(page)
+
+        neopoints = int(winning.nextSibling.text)
+        self._logger.info('Won %d NP', neopoints)
+
+        return self._start_game()
