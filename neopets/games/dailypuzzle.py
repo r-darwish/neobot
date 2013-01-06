@@ -11,7 +11,8 @@ class NoAnswerError(Exception):
 
 class DailyPuzzle(object):
     _ANSWER_DATE_RE = re.compile(r'The Daily Puzzle for')
-    _AWARD_RE = re.compile('You have been awarded')
+    _AWARD_RE = re.compile(r'You have been awarded')
+    _CORRECT_RE = re.compile(r'That is correct!')
     _POLL_FORM_ATTRS = dict(action='/community/index.phtml')
 
     def __init__(self, account, outside_browser):
@@ -85,7 +86,12 @@ class DailyPuzzle(object):
     def _on_post_answer(self, page):
         award_string = page.find(text=self._AWARD_RE)
         if not award_string:
-            raise PageParseError(page)
+            correct = page.find(text=self._CORRECT_RE)
+            if not correct:
+                raise PageParseError(page)
 
-        np = award_string.nextSibling.text
-        self._logger.info('Won %s', np)
+            np, item = [t.text for t in correct.parent.findAll('b')]
+            self._logger.info('Won %s NP and %s', np, item)
+        else:
+            np = award_string.nextSibling.text
+            self._logger.info('Won %s', np)
