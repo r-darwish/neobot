@@ -38,8 +38,9 @@ class Manager(object):
 
         self._tasks = [
             dailies.Interest(self._account),
-            games.DailyPuzzle(self._account, self._outside_browser),
+            dailies.ShopTill(self._account),
             dailies.Tombola(self._account),
+            games.DailyPuzzle(self._account, self._outside_browser),
             games.PotatoCounter(self._account),
             games.Cliffhanger(self._account),
             games.HideNSeek(self._account),
