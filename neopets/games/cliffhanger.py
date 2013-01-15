@@ -259,7 +259,6 @@ class Cliffhanger(object):
         return d
 
     def _on_start_game(self, page):
-        self._logger.info('Cliffhanger start!')
         return self._start_round(page)
 
     def _start_round(self, page):

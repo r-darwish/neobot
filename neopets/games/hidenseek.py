@@ -15,7 +15,6 @@ class HideNSeek(object):
         return 'Hide & Seek'
 
     def run(self):
-        self._logger.info('Starting Hide & Seek')
         return self._start_game()
 
     def _start_game(self):

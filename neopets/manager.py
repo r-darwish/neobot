@@ -69,6 +69,7 @@ class Manager(object):
             return
 
         task = self._tasks.pop(0)
+        self._logger.info('Starting %s', task)
         d = task.run()
         d.addCallback(self._on_task_done, str(task))
         d.addErrback(self._on_task_error, str(task))
