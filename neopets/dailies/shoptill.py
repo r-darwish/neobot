@@ -11,6 +11,9 @@ class ShopTill(object):
         self._logger = logging.getLogger(__name__)
         self._account = account
 
+    def __str__(self):
+        return 'Shop till'
+
     def run(self):
         d = self._account.get('market.phtml?type=till')
         d.addCallback(self._on_page)
