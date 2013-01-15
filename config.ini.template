@@ -7,4 +7,5 @@ data_dir = /var/neopets/username
 page_archiver = False
 
 [logging]
-level = INFO
+console_level = INFO
+file_level = DEBUG

@@ -2,9 +2,9 @@ import os
 from collections import namedtuple
 from ConfigParser import SafeConfigParser
 
-Account = namedtuple('Account', ['username', 'password'])
-Misc = namedtuple('Misc', ['data_dir', 'page_archiver'])
-Logging = namedtuple('Logging', ['level'])
+Account = namedtuple('Account', ('username', 'password'))
+Misc = namedtuple('Misc', ('data_dir', 'page_archiver'))
+Logging = namedtuple('Logging', ('console_level', 'file_level'))
 
 
 class ConfigurationError(Exception):
@@ -47,6 +47,7 @@ class Config(object):
             cp.getboolean('misc', 'page_archiver'))
 
         logging = Logging(
-            cp.get('logging', 'level'))
+            cp.get('logging', 'console_level'),
+            cp.get('logging', 'file_level'))
 
         return cls(account, misc, logging)
