@@ -3,6 +3,7 @@ import time
 import os
 from twisted.internet.defer import Deferred
 from neopets.account import Account
+from neopets.database import get_engine
 from neopets.common import PageParseError
 from neopets import games
 from neopets import dailies
@@ -17,11 +18,13 @@ class Manager(object):
         self._bad_pages_dir = os.path.join(
             self._config.misc.data_dir, 'bad_pages')
 
+        self._db = get_engine(self._config.misc.data_dir)
+
         if self._config.misc.page_archiver:
             self._pages_dir = os.path.join(
                 self._config.misc.data_dir, 'pages')
             page_archiver = PageArchiver(
-                self._pages_dir)
+                self._pages_dir, self._db)
         else:
             self._pages_dir = None
             page_archiver = None
