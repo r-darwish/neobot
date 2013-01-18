@@ -8,10 +8,9 @@ from neopets.common import PageParseError
 from neopets import games
 from neopets import dailies
 from neopets.shops import Shops
-from neopets.restocker import Restocker
-from neopets.pricecalc import EstPriceCalculator
 from neopets.page_archiver import PageArchiver
 from neopets.browser import Browser
+from neopets.restocking import Manager as RestockingManager
 
 
 class Manager(object):
@@ -55,17 +54,10 @@ class Manager(object):
             games.HideNSeek(self._account),
         ]
 
-        new_items_deferred = Deferred()
-        new_items_deferred.addCallback(self._on_new_items)
-
-        self._restockers = [
-            Restocker(self._db, self._shops.get_neopian(shop), self._account,
-                      self._config.application.restocker_refresh_interval,
-                      new_items_deferred)
-            for shop in self._config.application.restockers]
-
-        self._price_calc = EstPriceCalculator(self._account, self._db,
-                                              self._shops)
+        self._restock_man = RestockingManager(
+            self._account, self._db, self._shops,
+            self._config.application.restocker_refresh_interval,
+            self._config.application.restockers)
 
     @staticmethod
     def _create_directory(directory):
@@ -83,17 +75,10 @@ class Manager(object):
         self._run_next_task()
         return self._finished
 
-    def _on_new_items(self, _):
-        self._logger.debug('A restocker recorded new items. Recalcing prices')
-        self._price_calc.recalc()
-
     def _run_next_task(self):
         if not self._tasks or not self._config.application.dailies:
             self._logger.info('No more tasks. Running restockers')
-            for restocker in self._restockers:
-                restocker.start()
-
-            self._price_calc.recalc()
+            self._restock_man.start()
             return
 
         task = self._tasks.pop(0)

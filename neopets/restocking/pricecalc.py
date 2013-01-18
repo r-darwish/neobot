@@ -43,7 +43,7 @@ class EstPriceCalculator(object):
         n_offers = len(offers)
         if n_offers < self._MINIMUM_ENTRIES:
             self._logger.warning('%d offers for %s, which is below the minimum '
-                                 'offers for a price', n_offers)
+                                 'offers for a price', n_offers, item.name)
 
         offers_to_calc = min(self._MAX_ENTRIES, len(offers))
         avg = 0

@@ -1,46 +1,19 @@
 import logging
 from contextlib import closing
-from twisted.internet import task, reactor
 from sqlalchemy.sql import select
 
 class Restocker(object):
-    def __init__(self, db, shop, account, refresh_interval, new_items_deferred):
+    def __init__(self, db, shop, account, new_items_deferred):
         self._logger = logging.getLogger(
             '%s(%s)' % (__name__, shop.name))
         self._account = account
-        self._work = False
         self._shop = shop
         self._items = None
         self._db = db
-        self._refresh_interval = refresh_interval
         self._new_items_deferred = new_items_deferred
-
-    def start(self):
-        self._logger.info('Started')
         self._items = dict()
-        self._work = True
-        d = task.deferLater(reactor, 0, self._refresh,
-                            None)
-        d.addCallback(self._on_refreshed)
-        d.addErrback(self._on_error)
-        return d
 
-    def _on_refreshed(self, _):
-        self._logger.debug('Refresh finished successfully')
-        if not self._work:
-            self._logger.info('Stopped')
-            return
-
-        d = task.deferLater(reactor, self._refresh_interval, self._refresh,
-                            None)
-        d.addCallback(self._on_refreshed)
-        d.addErrback(self._on_error)
-        return d
-
-    def _on_error(self, result):
-        self._logger.error('Error: %s', result)
-
-    def _refresh(self, _):
+    def refresh(self):
         self._logger.debug('Refreshing')
         d = self._shop.get_items()
         d.addCallback(self._on_items)
