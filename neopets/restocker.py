@@ -61,7 +61,8 @@ class Restocker(object):
                     item.name, item.price)
 
                 query = items.insert().values(item_name=item.name,
-                                              shop_price=item.price)
+                                              shop_price=item.price,
+                                              shop_name=self._shop.name)
 
                 conn.execute(query)
                 return True

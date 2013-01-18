@@ -24,6 +24,7 @@ items = Table(
     'items', metadata,
     Column('item_name', String(100), primary_key=True, nullable=False),
     Column('shop_price', Integer, nullable=True),
+    Column('shop_name', String(100), nullable=True),
     Column('est_price', Integer, nullable=True),
     Column('est_price_date', DateTime, nullable=True))
 
