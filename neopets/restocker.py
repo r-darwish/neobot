@@ -1,13 +1,10 @@
-import re
 import logging
 from contextlib import closing
 from twisted.internet import task, reactor
 from sqlalchemy.sql import select
 
 class Restocker(object):
-    _REFRESH_INTERVAL = 15
-
-    def __init__(self, db, shop, account):
+    def __init__(self, db, shop, account, refresh_interval):
         self._logger = logging.getLogger(
             '%s(%s)' % (__name__, shop.name))
         self._account = account
@@ -15,6 +12,7 @@ class Restocker(object):
         self._shop = shop
         self._items = None
         self._db = db
+        self._refresh_interval = refresh_interval
 
     def start(self):
         self._logger.info('Started')
@@ -26,13 +24,13 @@ class Restocker(object):
         d.addErrback(self._on_error)
         return d
 
-    def _on_refreshed(self, result):
+    def _on_refreshed(self, _):
         self._logger.debug('Refresh finished successfully')
         if not self._work:
             self._logger.info('Stopped')
             return
 
-        d = task.deferLater(reactor, self._REFRESH_INTERVAL, self._refresh,
+        d = task.deferLater(reactor, self._refresh_interval, self._refresh,
                             None)
         d.addCallback(self._on_refreshed)
         d.addErrback(self._on_error)

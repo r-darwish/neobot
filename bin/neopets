@@ -4,7 +4,7 @@ import os
 import logging
 import logging.handlers
 from twisted.internet import reactor
-from neopets import Manager, Config
+from neopets import Manager, load_config
 
 
 class ConsoleFormatter(logging.Formatter):
@@ -42,7 +42,7 @@ def main():
         print "Usage: neopets [config_file]"
         return 1
 
-    config = Config.load_from_ini_file(config_filename)
+    config = load_config(config_filename)
 
     _configure_logging(config)
 

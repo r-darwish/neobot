@@ -9,3 +9,8 @@ page_archiver = False
 [logging]
 console_level = INFO
 file_level = DEBUG
+
+[application]
+dailies = false
+restockers = magic
+restocker_refresh_interval = 10

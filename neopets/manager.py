@@ -7,6 +7,9 @@ from neopets.database import get_engine
 from neopets.common import PageParseError
 from neopets import games
 from neopets import dailies
+from neopets.shops import Shops
+from neopets.restocker import Restocker
+from neopets.pricecalc import EstPriceCalculator
 from neopets.page_archiver import PageArchiver
 from neopets.browser import Browser
 
@@ -38,6 +41,8 @@ class Manager(object):
         self._outside_browser = Browser(
             page_archiver)
 
+        self._shops = Shops(self._account)
+
         self._finished = Deferred()
 
         self._tasks = [
@@ -49,6 +54,14 @@ class Manager(object):
             games.Cliffhanger(self._account),
             games.HideNSeek(self._account),
         ]
+
+        self._restockers = [
+            Restocker(self._db, self._shops.get_neopian(shop), self._account,
+                      self._config.application.restocker_refresh_interval)
+            for shop in self._config.application.restockers]
+
+        self._price_calc = EstPriceCalculator(self._account, self._db,
+                                              self._shops)
 
     @staticmethod
     def _create_directory(directory):
@@ -67,9 +80,12 @@ class Manager(object):
         return self._finished
 
     def _run_next_task(self):
-        if not self._tasks:
-            self._logger.info('No more tasks')
-            self._finished.callback(None)
+        if not self._tasks or not self._config.application.dailies:
+            self._logger.info('No more tasks. Running restockers')
+            for restocker in self._restockers:
+                restocker.start()
+
+            self._price_calc.recalc()
             return
 
         task = self._tasks.pop(0)
