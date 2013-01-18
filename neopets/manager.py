@@ -55,9 +55,13 @@ class Manager(object):
             games.HideNSeek(self._account),
         ]
 
+        new_items_deferred = Deferred()
+        new_items_deferred.addCallback(self._on_new_items)
+
         self._restockers = [
             Restocker(self._db, self._shops.get_neopian(shop), self._account,
-                      self._config.application.restocker_refresh_interval)
+                      self._config.application.restocker_refresh_interval,
+                      new_items_deferred)
             for shop in self._config.application.restockers]
 
         self._price_calc = EstPriceCalculator(self._account, self._db,
@@ -78,6 +82,10 @@ class Manager(object):
 
         self._run_next_task()
         return self._finished
+
+    def _on_new_items(self, _):
+        self._logger.debug('A restocker recorded new items. Recalcing prices')
+        self._price_calc.recalc()
 
     def _run_next_task(self):
         if not self._tasks or not self._config.application.dailies:
