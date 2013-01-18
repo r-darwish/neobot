@@ -1,3 +1,4 @@
+import os
 import logging
 from BeautifulSoup import BeautifulSoup
 from neopets.browser import Browser
@@ -10,9 +11,10 @@ class LoginError(Exception):
 
 
 class Account(object):
-    def __init__(self, username, password, page_archiver):
+    def __init__(self, data_dir, username, password, page_archiver):
+        cookie_file = os.path.join(data_dir, 'cookies')
         self._logger = logging.getLogger(__name__)
-        self._browser = Browser(page_archiver)
+        self._browser = Browser(page_archiver, cookie_file)
         self._username = username
         self._password = password
 

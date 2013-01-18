@@ -30,6 +30,7 @@ class Manager(object):
             page_archiver = None
 
         self._account = Account(
+            self._config.misc.data_dir,
             self._config.account.username,
             self._config.account.password,
             page_archiver)

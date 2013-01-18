@@ -1,5 +1,6 @@
 import os
 import logging
+import shelve
 from collections import namedtuple
 from urlparse import urlparse
 from urllib import urlencode
@@ -68,12 +69,21 @@ class Browser(object):
         'Content-Type' : ['application/x-www-form-urlencoded']
     }
 
-    def __init__(self, page_archiver):
-        self._cookies = dict()
+    def __init__(self, page_archiver, cookie_file=None):
         self._agent = Agent(reactor)
         self._logger = logging.getLogger(__name__)
         self._page_archiver = page_archiver
-        self._logger.info('Using page archiver: %s', page_archiver is not None)
+        self._logger.debug('Using page archiver: %s. Cookie file: %s',
+                           page_archiver is not None,
+                           cookie_file)
+        if cookie_file:
+            umask = os.umask(077)
+            self._cookies = shelve.open(cookie_file)
+            os.umask(umask)
+            self._shelve_cookies = True
+        else:
+            self._cookies = dict()
+            self._shelve_cookies = False
 
     def get(self, url, referer=None):
         self._logger.debug('Fetching %s', url)
@@ -115,7 +125,14 @@ class Browser(object):
             for cookie in result.headers.getRawHeaders('Set-Cookie'):
                 kv = cookie.split(';')[0]
                 key, value = kv.split('=')
+
+                if key in self._cookies and self._cookies[key] == value:
+                    continue
+
                 self._cookies[key] = value
+                if self._shelve_cookies:
+                    self._logger.debug('Synching cookies shelve')
+                    self._cookies.sync()
 
         if result.code == 302:
             url = request_data.url
