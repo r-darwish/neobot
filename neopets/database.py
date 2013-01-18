@@ -1,10 +1,11 @@
 import os
 from collections import namedtuple
-from sqlalchemy import create_engine, Table, Column, Integer, String, MetaData, DateTime
+from sqlalchemy import create_engine, Table, Column, Integer, \
+    String, MetaData, DateTime
 
 
 Database = namedtuple('Database', ('engine', 'tables'))
-Tables = namedtuple('Tables', ('pages'))
+Tables = namedtuple('Tables', ('pages', 'items'))
 
 
 metadata = MetaData()
@@ -19,10 +20,18 @@ pages = Table(
     Column('referer', String(1024), nullable=True))
 
 
+items = Table(
+    'items', metadata,
+    Column('item_name', String(100), primary_key=True, nullable=False),
+    Column('shop_price', Integer, nullable=True),
+    Column('est_price', Integer, nullable=True),
+    Column('est_price_date', DateTime, nullable=True))
+
+
 def get_engine(data_directory, echo=False):
     engine = create_engine('sqlite:///%s' % (
         os.path.join(data_directory, 'neopets.db')), echo=echo)
     with engine.connect():
         metadata.create_all(engine)
 
-    return Database(engine, Tables(pages))
+    return Database(engine, Tables(pages, items))
