@@ -4,73 +4,20 @@ import shelve
 from collections import namedtuple
 from urlparse import urlparse
 from urllib import urlencode
-from zope.interface import implements
-from twisted.web.iweb import IBodyProducer
-from twisted.internet import reactor, defer
-from twisted.internet.defer import succeed
-from twisted.internet.protocol import Protocol, connectionDone
-from twisted.web.client import Agent, ResponseDone
-from twisted.web.http_headers import Headers
+from twisted.web.client import getPage
 
 
 RequestData = namedtuple('RequestData', ('url', 'referer', 'data'))
 
 
-class UnknownHttpCodeError(Exception):
-    def __init__(self, code):
-        super(UnknownHttpCodeError, self).__init__(
-            'Unknown HTTP code %d' % (code, ))
-        self.code = code
-
-
-class PageGetter(Protocol):
-    def __init__(self, request_data):
-        self._request_data = request_data
-        self._finished = defer.Deferred()
-        self._buffer = ''
-
-    @property
-    def finished(self):
-        return self._finished
-
-    def dataReceived(self, data):
-        self._buffer += data
-
-    def connectionLost(self, reason=connectionDone):
-        reason.trap(ResponseDone)
-        self._finished.callback((self._buffer, self._request_data))
-
-
-class StringProducer(object):
-    implements(IBodyProducer)
-
-    def __init__(self, body):
-        self.body = body
-        self.length = len(body)
-
-    def startProducing(self, consumer):
-        consumer.write(self.body)
-        return succeed(None)
-
-    def pauseProducing(self):
-        pass
-
-    def stopProducing(self):
-        pass
-
-
 class Browser(object):
-    _HEADERS = {
-        'User-Agent' : ['Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1309.0 Safari/537.17']
-    }
+    _AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1309.0 Safari/537.17"
 
     _POST_HEADERS = {
-        'User-Agent' : ['Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1309.0 Safari/537.17'],
-        'Content-Type' : ['application/x-www-form-urlencoded']
+        'Content-Type' : 'application/x-www-form-urlencoded'
     }
 
     def __init__(self, page_archiver, cookie_file=None):
-        self._agent = Agent(reactor)
         self._logger = logging.getLogger(__name__)
         self._page_archiver = page_archiver
         self._logger.debug('Using page archiver: %s. Cookie file: %s',
@@ -78,83 +25,59 @@ class Browser(object):
                            cookie_file)
         if cookie_file:
             umask = os.umask(077)
-            self._cookies = shelve.open(cookie_file)
+            self._cookies = shelve.open(cookie_file, writeback=False)
             os.umask(umask)
-            self._shelve_cookies = True
         else:
             self._cookies = dict()
-            self._shelve_cookies = False
 
     def get(self, url, referer=None):
         self._logger.debug('Fetching %s', url)
-        headers = dict(self._HEADERS)
-        headers['Cookie'] = [';'.join([key + '=' + value for key, value
-                                       in self._cookies.iteritems()])]
-        if referer:
-            headers['Referer'] = [referer, ]
 
-        d = self._agent.request(
-            method='GET',
-            uri=url,
-            headers=Headers(headers))
-        d.addCallback(self._on_connected, RequestData(
+        headers = dict()
+        if referer:
+            headers['Referer'] = referer
+
+        d = getPage(
+            url,
+            headers=headers,
+            agent=self._AGENT,
+            cookies=self._cookies)
+        d.addCallback(self._on_download, RequestData(
             urlparse(url), referer, None))
         d.addErrback(self._on_error, url)
         return d
 
-    def post(self, url, data, referer=None):
+    def post(self, url, data, referer=None, manual_redirect=False):
         self._logger.debug('Posting to %s: %s', url, data)
+
         headers = dict(self._POST_HEADERS)
-        headers['Cookie'] = [';'.join([key + '=' + value for key, value
-                                       in self._cookies.iteritems()])]
         if referer:
-            headers['Referer'] = [referer, ]
+            headers['Referer'] = referer
+
         encoded_data = urlencode(data)
-        d = self._agent.request(
-            'POST',
+        d = getPage(
             url,
-            Headers(headers),
-            StringProducer(encoded_data) if encoded_data else None)
-        d.addCallback(self._on_connected, RequestData(
+            method='POST',
+            headers=headers,
+            agent=self._AGENT,
+            cookies=self._cookies,
+            postdata=encoded_data,
+        followRedirect=not manual_redirect)
+
+        d.addCallback(self._on_download, RequestData(
             urlparse(url), referer, data))
+        if manual_redirect:
+            d.addErrback(self._redirection_handler, url)
         d.addErrback(self._on_error, url)
         return d
 
-    def _on_connected(self, result, request_data):
-        if result.headers.hasHeader('Set-Cookie'):
-            for cookie in result.headers.getRawHeaders('Set-Cookie'):
-                kv = cookie.split(';')[0]
-                key, value = kv.split('=')
+    def _redirection_handler(self, result, url):
+        new_location = '%s/%s' % (
+            os.path.split(url)[0],
+            result.value.location)
+        return self.get(new_location)
 
-                if key in self._cookies and self._cookies[key] == value:
-                    continue
-
-                self._cookies[key] = value
-                if self._shelve_cookies:
-                    self._logger.debug('Synching cookies shelve')
-                    self._cookies.sync()
-
-        if result.code == 302:
-            url = request_data.url
-            redirection = result.headers.getRawHeaders('location')[0]
-            if redirection.startswith('/'):
-                new_location = 'http://%s%s' % (url.hostname, redirection)
-            else:
-                new_location = 'http://%s%s/%s' % (
-                    url.hostname, os.path.split(url.path)[0],
-                    redirection)
-            self._logger.debug('Redirected to %s', new_location)
-            return self.get(new_location)
-        elif result.code == 200:
-            pg = PageGetter(request_data)
-            result.deliverBody(pg)
-            pg.finished.addCallback(self._on_finished)
-            return pg.finished
-        else:
-            raise UnknownHttpCodeError(result.code)
-
-    def _on_finished(self, result):
-        page, request_data = result
+    def _on_download(self, page, request_data):
         if self._page_archiver:
             self._page_archiver.archive(
                 page, request_data.url, request_data.data, request_data.referer)

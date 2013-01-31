@@ -27,12 +27,12 @@ class Account(object):
         d.addCallback(self._on_page)
         return d
 
-    def post(self, url, data, referer=None):
+    def post(self, url, data, referer=None, manual_redirect=None):
         if referer:
             referer = 'http://www.neopets.com/' + referer
 
         d = self._browser.post('http://www.neopets.com/' + url,
-                               data, referer)
+                               data, referer, manual_redirect=manual_redirect)
         d.addCallback(self._on_page)
         return d
 
