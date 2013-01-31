@@ -1,6 +1,7 @@
 import logging
 from contextlib import closing
-from sqlalchemy.sql import select
+from sqlalchemy.sql import select, and_
+from twisted.internet.defer import AlreadyCalledError
 
 class Restocker(object):
     def __init__(self, db, shop, account, new_items_deferred):
@@ -50,6 +51,23 @@ class Restocker(object):
 
         return False
 
+    def _find_bargains(self, items):
+        items_t = self._db.tables.items
+        profit_column = (items_t.c.est_price - items_t.c.shop_price)\
+            .label('profit')
+        with self._db.engine.connect() as conn:
+            query = select((items_t.c.item_name, profit_column)) \
+                           .where(and_(
+                               items_t.c.est_price != None,
+                               items_t.c.item_name.in_(items),
+                               profit_column > 1000)) \
+                           .order_by(profit_column.desc())
+            with closing(conn.execute(query)) as result:
+                for bargain in result:
+                    self._logger.info(
+                        'Bargain: \'%s\'. Profit: %s', bargain.item_name,
+                        bargain.profit)
+
     def _on_items(self, items):
         item_names = set()
         new_items = False
@@ -78,4 +96,9 @@ class Restocker(object):
 
         if new_items:
             self._logger.debug('New items recorded')
-            self._new_items_deferred.callback(None)
+            try:
+                self._new_items_deferred.callback(None)
+            except AlreadyCalledError:
+                self._logger.debug('New items deferred already called')
+
+        return self._find_bargains(item_names)
