@@ -43,6 +43,13 @@ class Account(object):
 
         soup = BeautifulSoup(page)
         if not soup.find('a', text='Log in'):
+            event = soup.find('b', text='Something has happened!')
+            if event:
+                cell = event.findParent('table').findAll('td')[2]
+                text = ''.join([x.text if hasattr(x, 'text') else x
+                        for x in cell.childGenerator()])
+                self._logger.info("Something has happned: %s", text)
+
             return soup
 
         self._logger.info('Need to login. Using account %s', self._username)
