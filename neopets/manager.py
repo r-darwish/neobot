@@ -1,16 +1,16 @@
 import logging
 import time
 import os
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, succeed
 from neopets.account import Account
 from neopets.database import get_engine
+from neopets.tasks import SerialTasks
 from neopets.common import PageParseError
 from neopets import games
 from neopets import dailies
 from neopets.shops import Shops
 from neopets.page_archiver import PageArchiver
 from neopets.browser import Browser
-from neopets.restocking import Manager as RestockingManager
 
 
 class Manager(object):
@@ -44,7 +44,7 @@ class Manager(object):
 
         self._finished = Deferred()
 
-        self._tasks = [
+        self._dailies = [
             dailies.Interest(self._account),
             dailies.ShopTill(self._account),
             dailies.Tombola(self._account),
@@ -53,11 +53,6 @@ class Manager(object):
             games.Cliffhanger(self._account),
             games.HideNSeek(self._account),
         ]
-
-        self._restock_man = RestockingManager(
-            self._account, self._db, self._shops,
-            self._config.application.restocker_refresh_interval,
-            self._config.application.restockers)
 
     @staticmethod
     def _create_directory(directory):
@@ -72,20 +67,12 @@ class Manager(object):
                           self._pages_dir):
             self._create_directory(directory)
 
-        self._run_next_task()
-        return self._finished
+        if not self._config.application.dailies:
+            all_tasks = succeed
+        else:
+            all_tasks = SerialTasks(self._dailies, "Dailies", self._error_callback).run()
 
-    def _run_next_task(self):
-        if not self._tasks or not self._config.application.dailies:
-            self._logger.info('No more tasks. Running restockers')
-            self._restock_man.start()
-            return
-
-        task = self._tasks.pop(0)
-        self._logger.info('Starting %s', task)
-        d = task.run()
-        d.addCallback(self._on_task_done, str(task))
-        d.addErrback(self._on_task_error, str(task))
+        return all_tasks
 
     def _dump_page_error(self, page, traceback):
         name = os.path.join(self._bad_pages_dir, str(time.time()))
@@ -95,14 +82,7 @@ class Manager(object):
         with open(name + '.tbk', 'w') as tb_file:
             tb_file.write(traceback)
 
-    def _on_task_done(self, _, task_name):
-        self._logger.info('Task %s finished successfully', task_name)
-        return self._run_next_task()
-
-    def _on_task_error(self, error, task_name):
-        self._logger.error("Task %s failed: %s", task_name, error)
-
+    def _error_callback(self, error):
         e = error.value
         if type(e) is PageParseError:
             self._dump_page_error(e.page, error.getTraceback())
-        return self._run_next_task()
