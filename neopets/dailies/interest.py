@@ -19,8 +19,7 @@ class Interest(object):
             self._logger.info('No collect button is present')
             return
 
-        d = self._account.post('process_bank.phtml',
-                               dict(type='interest'))
+        d = self._account.post('process_bank.phtml', dict(type='interest'), manual_redirect=True)
         d.addCallback(self._on_submit)
         return d
 
