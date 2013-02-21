@@ -7,6 +7,7 @@ class SniperManager(object):
     _INTERVAL = 60
     _AUCTIONS_TO_ANALYZE = 5
     _BARGAIN_THRSHOLD = 1500
+    _INTERESTING_KEYWORDS = ('codestone', )
 
     def __init__(self, account, shops):
         self._account = account
@@ -54,6 +55,11 @@ class SniperManager(object):
                 yield False, 0
 
     def _first_analysis(self, auction):
+        for keyword in self._INTERESTING_KEYWORDS:
+            if keyword in auction.item.lower():
+                self._logger.debug('%s is interesting because of keyword %s', auction.item, keyword)
+                return True
+
         if not auction.last_bidder:
             self._logger.debug('No last bidder for %s', auction.item)
             return False
