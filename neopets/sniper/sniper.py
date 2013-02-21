@@ -42,8 +42,8 @@ class SniperManager(object):
                 self._logger.info('Found a bargain: %s (current price: %d, est price: %d)',
                                   auction.item, auction.current_price, est_price)
 
-                self._logger.debug('%s: current price: %d, est price: %d (%d - %.2f%%)',
-                                   auction.item, auction.current_price, est_price, delta, yield_)
+            self._logger.debug('%s: current price: %d, est price: %d (%d - %.2f%%)',
+                               auction.item, auction.current_price, est_price, delta, yield_)
 
     @defer.deferredGenerator
     def _iteration(self):
