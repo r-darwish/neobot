@@ -37,17 +37,17 @@ class SniperManager(object):
         else:
             delta = est_price - auction.current_price
             yield_ = (float(est_price) / auction.current_price - 1) * 100
-            self._logger.debug('%s: current price: %d, est price: %d (%d - %.2f%%)',
-                               auction.item, auction.current_price, est_price, delta, yield_)
 
             if delta > self._BARGAIN_THRSHOLD:
                 if yield_ > 100.0:
-                    self._logger.info('Found a suspecious bargain: %s (current price: %d, est price: %d)',
-                                      auction.item, auction.current_price, est_price)
+                    self._logger.info(
+                        'Found a suspecious bargain: %s (current price: %d, est price: %d, yield: %.2f%%)',
+                        auction.item, auction.current_price, est_price, yield_)
                     yield False, 0
                 else:
-                    self._logger.info('Found a bargain: %s (current price: %d, est price: %d)',
-                                      auction.item, auction.current_price, est_price)
+                    self._logger.info(
+                        'Found a bargain: %s (current price: %d, est price: %d, yield: %.2f%%)',
+                        auction.item, auction.current_price, est_price, yield_)
 
                     yield True, est_price
 
