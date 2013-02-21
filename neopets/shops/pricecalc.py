@@ -42,10 +42,19 @@ class EstPriceCalculator(object):
         for _ in xrange(samples):
             results.append(self._calc_sample(item))
 
-        d = defer.waitForDeferred(defer.DeferredList(results, fireOnOneErrback=True))
+        d = defer.waitForDeferred(defer.DeferredList(results, consumeErrors=True))
         yield d
         results = d.getResult()
 
-        avg = sum((r for _, r in results)) / samples
+        self._logger.debug('Results for %s: %s', item, [r for _, r in results])
+
+        avg = 0
+        for succeeded, result in results:
+            if not succeeded:
+                raise result
+
+            avg += result
+
+        avg /= samples
 
         yield avg
