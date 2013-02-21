@@ -26,23 +26,23 @@ class EstPriceCalculator(object):
         if n_offers == 0:
             self._logger.warning('No results for %s', item)
             yield (0, letters_page)
+            return
 
-        else:
-            if n_offers < self._MINIMUM_ENTRIES:
-                self._logger.warning('%d offers for %s, which is below the minimum '
-                                     'offers for a price', n_offers, item)
+        if n_offers < self._MINIMUM_ENTRIES:
+            self._logger.warning('%d offers for %s, which is below the minimum '
+                                 'offers for a price', n_offers, item)
 
-            offers_to_calc = min(self._MAX_ENTRIES, len(offers))
-            avg = 0
-            weights = 0
-            for i in xrange(offers_to_calc):
-                offer = offers[i]
-                avg += offer.price * offer.stock
-                weights += offer.stock
+        offers_to_calc = min(self._MAX_ENTRIES, len(offers))
+        avg = 0
+        weights = 0
+        for i in xrange(offers_to_calc):
+            offer = offers[i]
+            avg += offer.price * offer.stock
+            weights += offer.stock
 
-            avg /= weights
+        avg /= weights
 
-            yield (avg, letters_page)
+        yield (avg, letters_page)
 
     @defer.deferredGenerator
     def calc(self, item, samples=3):

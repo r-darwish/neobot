@@ -36,30 +36,32 @@ class SniperManager(object):
         except ShopWizardExhaustedError as e:
             self._handle_exaustion(e.resume_time)
             yield False, 0
+            return
 
         except ItemNotFoundInShopWizardError:
             self._logger.error('%s not found in shop wizard', auction.item)
             yield False, 0
+            return
 
-        else:
-            delta = est_price - auction.current_price
-            yield_ = (float(est_price) / auction.current_price - 1) * 100
+        delta = est_price - auction.current_price
+        yield_ = (float(est_price) / auction.current_price - 1) * 100
 
-            if delta > self._BARGAIN_THRSHOLD:
-                if yield_ > 100.0:
-                    self._logger.info(
-                        'Found a suspecious bargain: %s (current price: %d, est price: %d, yield: %.2f%%)',
-                        auction.item, auction.current_price, est_price, yield_)
-                    yield False, 0
-                else:
-                    self._logger.info(
-                        'Found a bargain: %s (current price: %d, est price: %d, yield: %.2f%%)',
-                        auction.item, auction.current_price, est_price, yield_)
+        if delta <= self._BARGAIN_THRSHOLD:
+            yield False, 0
+            return
 
-                    yield True, est_price
+        if yield_ > 100.0:
+            self._logger.info(
+                'Found a suspecious bargain: %s (current price: %d, est price: %d, yield: %.2f%%)',
+                auction.item, auction.current_price, est_price, yield_)
+            yield False, 0
+            return
 
-            else:
-                yield False, 0
+        self._logger.info(
+            'Found a bargain: %s (current price: %d, est price: %d, yield: %.2f%%)',
+            auction.item, auction.current_price, est_price, yield_)
+
+        yield True, est_price
 
     def _first_analysis(self, auction):
         for keyword in self._INTERESTING_KEYWORDS:
