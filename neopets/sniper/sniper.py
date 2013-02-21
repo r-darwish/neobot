@@ -5,7 +5,7 @@ from neopets.shops import ShopWizardExhaustedError, ItemNotFoundInShopWizardErro
 
 class SniperManager(object):
     _INTERVAL = 60
-    _AUCTIONS_TO_ANALYZE = 5
+    _AUCTIONS_TO_ANALYZE = 20
     _BARGAIN_THRSHOLD = 1500
     _INTERESTING_KEYWORDS = ('codestone', )
 
@@ -97,7 +97,7 @@ class SniperManager(object):
     def _iteration(self):
         self._logger.debug('Sniper iteration')
 
-        d = defer.waitForDeferred(self._shops.auction_house.get_main_page())
+        d = defer.waitForDeferred(self._shops.auction_house.get_main_page(1))
         yield d
         auctions = d.getResult()
 

@@ -12,8 +12,9 @@ class AuctionHouse(object):
         self._account = account
 
     @defer.deferredGenerator
-    def get_main_page(self):
-        d = defer.waitForDeferred(self._account.get('auctions.phtml'))
+    def get_main_page(self, page=0):
+        d = defer.waitForDeferred(
+            self._account.get('auctions.phtml?auction_counter=%d' % (page * 20)))
         yield d
         auctions_page = d.getResult()
 
