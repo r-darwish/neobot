@@ -1,2 +1,2 @@
 from shops import Shops
-from wizard import ShopWizardExhaustedError
+from wizard import ShopWizardExhaustedError, ItemNotFoundInShopWizardError

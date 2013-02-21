@@ -16,10 +16,16 @@ class EstPriceCalculator(object):
         yield d
 
         offers = d.getResult()
+        letters_page = set()
+        for offer in offers:
+            letters_page.add(offer.owner[0])
+
+        letters_page = frozenset(letters_page)
+
         n_offers = len(offers)
         if n_offers == 0:
             self._logger.warning('No results for %s', item)
-            yield 0
+            yield (0, letters_page)
 
         else:
             if n_offers < self._MINIMUM_ENTRIES:
@@ -36,27 +42,32 @@ class EstPriceCalculator(object):
 
             avg /= weights
 
-            yield avg
+            yield (avg, letters_page)
 
     @defer.deferredGenerator
     def calc(self, item, samples=3):
         results = []
-        for _ in xrange(samples):
-            results.append(self._calc_sample(item))
+        recorded_letters = set()
 
-        d = defer.waitForDeferred(defer.DeferredList(results, consumeErrors=True))
-        yield d
-        results = d.getResult()
+        while True:
+            d = defer.waitForDeferred(self._calc_sample(item))
+            yield d
+            price, letters = d.getResult()
 
-        self._logger.debug('Results for %s: %s', item, [r for _, r in results])
+            if letters in recorded_letters:
+                self._logger.debug('Letters %s for item %s already recorded', letters, item)
+                continue
 
-        avg = 0
-        for succeeded, result in results:
-            if not succeeded:
-                raise result
+            recorded_letters.add(letters)
+            results.append((price, letters))
+            if len(results) >= samples:
+                break
 
-            avg += result
+        price_list = [price for price, _ in results]
+        deviation = (float(max(price_list)) / float(min(price_list)) - 1) * 100
+        avg = sum(price_list) / samples
 
-        avg /= samples
+        self._logger.debug('Results for %s: %s. Avg: %d. Deviation: %.2f%%',
+                           item, results, avg, deviation)
 
-        yield avg
+        yield avg, deviation

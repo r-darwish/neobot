@@ -4,7 +4,13 @@ from twisted.internet import defer
 from neopets.utils import to_int, np_to_int
 
 
-Offer = namedtuple('Offer', ('shop_link', 'item', 'stock', 'price'))
+Offer = namedtuple('Offer', ('shop_link', 'item', 'stock', 'price', 'owner'))
+
+
+class ItemNotFoundInShopWizardError(Exception):
+    def __init__(self, item):
+        super(ItemNotFoundInShopWizardError, self).__init__(
+            'Item %s not found in shop wizard' % (item, ))
 
 
 class ShopWizardExhaustedError(Exception):
@@ -49,8 +55,12 @@ class Wizard(object):
             item_name = tds[1].text
             stock = to_int(tds[2].text)
             price = np_to_int(tds[3].text)
+            owner = link.text
 
-            offers.append(Offer(link.attrMap['href'], item_name, stock, price))
+            offers.append(Offer(link.attrMap['href'], item_name, stock, price, owner))
+
+        if len(offers) == 0:
+            raise ItemNotFoundInShopWizardError(item)
 
         yield offers
 

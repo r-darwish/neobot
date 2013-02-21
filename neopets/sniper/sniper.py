@@ -1,6 +1,6 @@
 import logging
 from twisted.internet import reactor, defer
-from neopets.shops import ShopWizardExhaustedError
+from neopets.shops import ShopWizardExhaustedError, ItemNotFoundInShopWizardError
 
 
 class SniperManager(object):
@@ -27,13 +27,20 @@ class SniperManager(object):
 
     @defer.deferredGenerator
     def _second_analyze(self, auction):
-        d = defer.waitForDeferred(self._shops.est_price_calc.calc(auction.item, 5))
+        d = defer.waitForDeferred(self._shops.est_price_calc.calc(auction.item))
         yield d
 
         try:
-            est_price = d.getResult()
+            est_price, _ = d.getResult()
+
         except ShopWizardExhaustedError as e:
             self._handle_exaustion(e.resume_time)
+            yield False, 0
+
+        except ItemNotFoundInShopWizardError:
+            self._logger.error('%s not found in shop wizard', auction.item)
+            yield False, 0
+
         else:
             delta = est_price - auction.current_price
             yield_ = (float(est_price) / auction.current_price - 1) * 100
