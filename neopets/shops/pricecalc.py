@@ -3,8 +3,8 @@ from twisted.internet import defer
 
 
 class EstPriceCalculator(object):
-    _MAX_ENTRIES = 10
-    _MINIMUM_ENTRIES = 3
+    _MAX_ENTRIES = 3
+    _MINIMUM_ENTRIES = 5
 
     def __init__(self, shops):
         self._shops = shops
@@ -17,11 +17,15 @@ class EstPriceCalculator(object):
 
         offers = d.getResult()
         n_offers = len(offers)
-        if n_offers < self._MINIMUM_ENTRIES:
-            self._logger.warning('%d offers for %s, which is below the minimum '
-                                 'offers for a price', n_offers, item)
+        if n_offers == 0:
+            self._logger.warning('No results for %s', item)
             yield 0
+
         else:
+            if n_offers < self._MINIMUM_ENTRIES:
+                self._logger.warning('%d offers for %s, which is below the minimum '
+                                     'offers for a price', n_offers, item)
+
             offers_to_calc = min(self._MAX_ENTRIES, len(offers))
             avg = 0
             weights = 0
@@ -30,9 +34,7 @@ class EstPriceCalculator(object):
                 avg += offer.price * offer.stock
                 weights += offer.stock
 
-                avg /= weights
-
-            self._logger.debug('%s: Est price is %d', item, avg)
+            avg /= weights
 
             yield avg
 
