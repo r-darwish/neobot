@@ -8,6 +8,7 @@ class SniperManager(object):
     _AUCTIONS_TO_ANALYZE = 20
     _BARGAIN_THRSHOLD = 2000
     _INTERESTING_KEYWORDS = ('codestone', )
+    _BAD_KEYWORDS = ('map', )
 
     def __init__(self, account, shops):
         self._account = account
@@ -68,6 +69,11 @@ class SniperManager(object):
             if keyword in auction.item.lower():
                 self._logger.debug('%s is interesting because of keyword %s', auction.item, keyword)
                 return True
+
+        for keyword in self._BAD_KEYWORDS:
+            if keyword in auction.item.lower():
+                self._logger.debug('%s is skipped because of keyword %s', auction.item, keyword)
+                return False
 
         if not auction.last_bidder:
             self._logger.debug('No last bidder for %s', auction.item)
