@@ -1,0 +1,51 @@
+import logging
+from twisted.internet import defer
+
+
+class EstPriceCalculator(object):
+    _MAX_ENTRIES = 10
+    _MINIMUM_ENTRIES = 3
+
+    def __init__(self, shops):
+        self._shops = shops
+        self._logger = logging.getLogger(__name__)
+
+    @defer.deferredGenerator
+    def _calc_sample(self, item):
+        d = defer.waitForDeferred(self._shops.wizard.get_offers(item))
+        yield d
+
+        offers = d.getResult()
+        n_offers = len(offers)
+        if n_offers < self._MINIMUM_ENTRIES:
+            self._logger.warning('%d offers for %s, which is below the minimum '
+                                 'offers for a price', n_offers, item)
+            yield 0
+        else:
+            offers_to_calc = min(self._MAX_ENTRIES, len(offers))
+            avg = 0
+            weights = 0
+            for i in xrange(offers_to_calc):
+                offer = offers[i]
+                avg += offer.price * offer.stock
+                weights += offer.stock
+
+                avg /= weights
+
+            self._logger.debug('%s: Est price is %d', item, avg)
+
+            yield avg
+
+    @defer.deferredGenerator
+    def calc(self, item, samples=3):
+        results = []
+        for _ in xrange(samples):
+            results.append(self._calc_sample(item))
+
+        d = defer.waitForDeferred(defer.DeferredList(results, fireOnOneErrback=True))
+        yield d
+        results = d.getResult()
+
+        avg = sum((r for _, r in results)) / samples
+
+        yield avg

@@ -1,0 +1,1 @@
+from sniper import SniperManager
