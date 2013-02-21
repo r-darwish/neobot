@@ -6,7 +6,7 @@ from neopets.shops import ShopWizardExhaustedError, ItemNotFoundInShopWizardErro
 class SniperManager(object):
     _INTERVAL = 60
     _AUCTIONS_TO_ANALYZE = 20
-    _BARGAIN_THRSHOLD = 1500
+    _BARGAIN_THRSHOLD = 2000
     _INTERESTING_KEYWORDS = ('codestone', )
 
     def __init__(self, account, shops):
