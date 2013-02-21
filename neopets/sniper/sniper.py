@@ -26,7 +26,7 @@ class SniperManager(object):
 
     @defer.deferredGenerator
     def _second_analyze(self, auction):
-        d = defer.waitForDeferred(self._shops.est_price_calc.calc(auction.item, 3))
+        d = defer.waitForDeferred(self._shops.est_price_calc.calc(auction.item, 5))
         yield d
 
         try:
