@@ -4,7 +4,7 @@ from neopets.utils import np_to_int
 from neopets.common import PageParseError
 
 
-Auction = namedtuple('Auction', ('link', 'item', 'last_bid', 'current_price'))
+Auction = namedtuple('Auction', ('link', 'item', 'last_bid', 'current_price', 'last_bidder'))
 
 
 class AuctionHouse(object):
@@ -30,10 +30,12 @@ class AuctionHouse(object):
                 # Neofrinds only
                 continue
 
+            last_bidder = tds[7].text if tds[7].text != 'nobody' else None
             auctions.append(Auction(
                 tds[1].find('a')['href'],
                 tds[2].find('a').text,
                 int(tds[5].find('b').text),
-                int(tds[6].find('b').text)))
+                int(tds[6].find('b').text),
+                last_bidder))
 
         yield auctions
