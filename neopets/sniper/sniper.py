@@ -7,6 +7,7 @@ class SniperManager(object):
     _INTERVAL = 60
     _AUCTIONS_TO_ANALYZE = 20
     _BARGAIN_THRSHOLD = 2000
+    _PROFIT_THRESHOLD = 1500
     _INTERESTING_KEYWORDS = ('codestone', )
     _BAD_KEYWORDS = ('map', )
 
@@ -16,15 +17,58 @@ class SniperManager(object):
         self._shops = shops
         self._handled_auctions = set()
         self._next_iteration = None
+        self._running = False
 
     def run(self):
         reactor.callLater(0, self._iteration)
+        self._running = True
+
+    def stop(self):
+        if self._next_iteration:
+            if self._next_iteration.active():
+                self._next_iteration.cancel()
+
+        self._running = False
 
     def _handle_exaustion(self, time_to_resume):
         self._logger.warning('Shop wizard exhausted. Resuming in %d minutes', time_to_resume)
         if self._next_iteration:
             if self._next_iteration.active():
                 self._next_iteration.reset(60 * time_to_resume + 2)
+
+    def _is_interesting_keyword(self, auction):
+        for keyword in self._INTERESTING_KEYWORDS:
+            if keyword in auction.item.lower():
+                self._logger.debug('%s is interesting because of keyword %s', auction.item, keyword)
+                return True
+
+        return False
+
+    @defer.deferredGenerator
+    def _snipe(self, auction, est_price):
+        self._logger.info('Sniping auction %s', auction)
+        while True:
+            d = defer.waitForDeferred(self._shops.auction_house.get_auction_page(str(auction.link)))
+            yield d
+            info = d.getResult()
+
+            top_bidder = info.bidders[0].name
+            me_top = top_bidder == self._account.username
+            if not info.open:
+                self._logger.info('Auction closed. Won: %s', me_top)
+                return
+
+            self._logger.debug('Auction refreshed. Top bidder: %s. Next bid: %d',
+                               info.bidders[0], info.next_bid)
+
+            if me_top:
+                continue
+
+            self._logger.info('We\'re not at the top!')
+
+            if est_price - info.next_bid < self._PROFIT_THRESHOLD:
+                self._logger.info('Next bit will be non-profitable. Quitting it')
+                return
 
     @defer.deferredGenerator
     def _second_analyze(self, auction):
@@ -51,7 +95,7 @@ class SniperManager(object):
             yield False, 0
             return
 
-        if yield_ > 100.0:
+        if (yield_ > 100.0) and (not self._is_interesting_keyword(auction)):
             self._logger.info(
                 'Found a suspecious bargain: %s (current price: %d, est price: %d, yield: %.2f%%)',
                 auction.item, auction.current_price, est_price, yield_)
@@ -65,10 +109,8 @@ class SniperManager(object):
         yield True, est_price
 
     def _first_analysis(self, auction):
-        for keyword in self._INTERESTING_KEYWORDS:
-            if keyword in auction.item.lower():
-                self._logger.debug('%s is interesting because of keyword %s', auction.item, keyword)
-                return True
+        if self._is_interesting_keyword(auction):
+            return True
 
         for keyword in self._BAD_KEYWORDS:
             if keyword in auction.item.lower():
@@ -96,10 +138,24 @@ class SniperManager(object):
         if self._first_analysis(auction):
             d = defer.waitForDeferred(self._second_analyze(auction))
             yield d
-            should_continue, _ = d.getResult()
+            should_continue, est_price = d.getResult()
 
-            if should_continue:
-                self._logger.info('%s should be sniped', auction)
+            if not should_continue:
+                return
+
+            if not self._running:
+                self._logger.warning('Skipping sniping of %s because we\'re not running', auction)
+                return
+
+            self.stop()
+            d = defer.waitForDeferred(self._snipe(auction, est_price))
+            yield d
+            self._logger.info('Sniping done')
+
+            try:
+                d.getResult()
+            finally:
+                self.run()
 
     @defer.deferredGenerator
     def _iteration(self):
@@ -109,7 +165,7 @@ class SniperManager(object):
         yield d
         auctions = d.getResult()
 
-        for auction in auctions[-self._AUCTIONS_TO_ANALYZE:]:
+        for auction in auctions[:self._AUCTIONS_TO_ANALYZE]:
             if auction.link in self._handled_auctions:
                 self._logger.debug('already handling %s', auction)
                 continue

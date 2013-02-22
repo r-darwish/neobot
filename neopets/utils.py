@@ -1,6 +1,6 @@
 import re
 
-_NP_RE = re.compile(r'([\d,]+) NP')
+_NP_RE = re.compile(r'([\d,]+)(?: NP)?')
 
 def to_int(text):
     return int(text.replace(',',''))

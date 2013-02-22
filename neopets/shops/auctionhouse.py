@@ -6,6 +6,9 @@ from neopets.common import PageParseError
 
 Auction = namedtuple('Auction', ('link', 'item', 'last_bid', 'current_price', 'last_bidder'))
 
+Bidder = namedtuple('Bidder', ('name', 'bid'))
+
+AuctionDetails = namedtuple('AuctionDetails', ('open', 'next_bid', 'bidders'))
 
 class AuctionHouse(object):
     def __init__(self, account):
@@ -32,6 +35,7 @@ class AuctionHouse(object):
                 continue
 
             last_bidder = tds[7].text if tds[7].text != 'nobody' else None
+
             auctions.append(Auction(
                 tds[1].find('a')['href'],
                 tds[2].find('a').text,
@@ -40,3 +44,28 @@ class AuctionHouse(object):
                 last_bidder))
 
         yield auctions
+
+    @defer.deferredGenerator
+    def get_auction_page(self, link):
+        d = defer.waitForDeferred(self._account.get(link))
+        yield d
+        page = d.getResult()
+
+        head = page.find('b', text='Bidder')
+        if not head:
+            raise PageParseError(page)
+
+        bidders = []
+        table = head.findParent('table')
+        for tr in table.findAll('tr')[1:]:
+            tds = tr.findAll('td')
+            bidders.append(Bidder(tds[0].text, np_to_int(tds[1].find('b').text)))
+
+
+        auction_open = page.find('b', text='Time Left in Auction : ').parent.nextSibling.strip() != 'Closed'
+        if auction_open:
+            next_bid = int(page.find('input', attrs={'type' : 'text', 'name' : 'amount'})['value'])
+        else:
+            next_bid = None
+
+        yield AuctionDetails(auction_open, next_bid, bidders)

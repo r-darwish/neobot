@@ -18,6 +18,10 @@ class Account(object):
         self._username = username
         self._password = password
 
+    @property
+    def username(self):
+        return self._username
+
     def get(self, url, referer=None):
         if referer:
             referer = 'http://www.neopets.com/' + referer
