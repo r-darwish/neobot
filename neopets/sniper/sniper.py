@@ -66,6 +66,12 @@ class SniperManager(object):
 
             self._logger.info('We\'re not at the top!')
 
+            if self._account.neopoints < info.next_bid:
+                self._logger.warning(
+                    'We don\'t have enough neopoints for the next bid. Have: %d, Required: %d',
+                    self._account.neopoints, info.next_bid)
+                return
+
             if est_price - info.next_bid < self._PROFIT_THRESHOLD:
                 self._logger.info('Next bit will be non-profitable. Quitting it')
                 return

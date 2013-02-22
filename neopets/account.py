@@ -2,6 +2,7 @@ import os
 import logging
 from BeautifulSoup import BeautifulSoup
 from neopets.browser import Browser
+from neopets.common import get_np
 
 
 class LoginError(Exception):
@@ -17,6 +18,11 @@ class Account(object):
         self._browser = Browser(page_archiver, cookie_file)
         self._username = username
         self._password = password
+        self._neopoints = None
+
+    @property
+    def neopoints(self):
+        return self._neopoints
 
     @property
     def username(self):
@@ -53,6 +59,8 @@ class Account(object):
                 text = ''.join([x.text if hasattr(x, 'text') else x
                         for x in cell.childGenerator()])
                 self._logger.info("Something has happned: %s", text)
+
+            self._neopoints = get_np(soup)
 
             return soup
 
