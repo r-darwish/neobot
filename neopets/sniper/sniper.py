@@ -103,14 +103,14 @@ class SniperManager(object):
 
         if (yield_ > 100.0) and (not self._is_interesting_keyword(auction)):
             self._logger.info(
-                'Found a suspecious bargain: %s (current price: %d, est price: %d, yield: %.2f%%)',
-                auction.item, auction.current_price, est_price, yield_)
+                'Found a suspecious bargain: %s (current price: %d, est price: %d, yield: %.2f%%, profit: %d)',
+                auction.item, auction.current_price, est_price, yield_, delta)
             yield False, 0
             return
 
         self._logger.info(
-            'Found a bargain: %s (current price: %d, est price: %d, yield: %.2f%%)',
-            auction.item, auction.current_price, est_price, yield_)
+            'Found a bargain: %s (current price: %d, est price: %d, yield: %.2f%%, profit: %d)',
+            auction.item, auction.current_price, est_price, yield_, delta)
 
         yield True, est_price
 
@@ -173,7 +173,6 @@ class SniperManager(object):
 
         for auction in auctions[:self._AUCTIONS_TO_ANALYZE]:
             if auction.link in self._handled_auctions:
-                self._logger.debug('already handling %s', auction)
                 continue
 
             self._handled_auctions.add(auction.link)

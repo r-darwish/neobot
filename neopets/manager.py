@@ -2,6 +2,7 @@ import logging
 import time
 import os
 from twisted.internet.defer import Deferred, succeed
+from neopets.sniper import SniperManager
 from neopets.account import Account
 from neopets.database import get_engine
 from neopets.tasks import SerialTasks
@@ -55,6 +56,8 @@ class Manager(object):
             games.HideNSeek(self._account),
         ]
 
+        self._sniper = SniperManager(self._account, self._shops)
+
     @staticmethod
     def _create_directory(directory):
         if directory is None:
@@ -69,9 +72,11 @@ class Manager(object):
             self._create_directory(directory)
 
         if not self._config.application.dailies:
-            all_tasks = succeed
+            all_tasks = Deferred()
         else:
             all_tasks = SerialTasks(self._dailies, "Dailies", self._error_callback).run()
+
+        self._sniper.run()
 
         return all_tasks
 
