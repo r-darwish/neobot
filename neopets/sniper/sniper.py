@@ -109,7 +109,7 @@ class SniperManager(object):
             yield False, 0
             return
 
-        if deviation > 25:
+        if deviation > 33:
             self._logger.info('Estimated price for %s is too risky. Deviation: %.2f%%',
                               auction.item, deviation)
             yield False, 0
