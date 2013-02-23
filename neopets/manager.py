@@ -12,6 +12,7 @@ from neopets import dailies
 from neopets.shops import Shops
 from neopets.page_archiver import PageArchiver
 from neopets.browser import Browser
+from neopets.cache import QueryCache
 
 
 class Manager(object):
@@ -20,6 +21,8 @@ class Manager(object):
         self._config = config
         self._bad_pages_dir = os.path.join(
             self._config.misc.data_dir, 'bad_pages')
+        self._cache_dir = os.path.join(
+            self._config.misc.data_dir, 'cache')
 
         self._db = get_engine(self._config.misc.data_dir)
 
@@ -32,6 +35,11 @@ class Manager(object):
             self._pages_dir = None
             page_archiver = None
 
+        for directory in (self._bad_pages_dir,
+                          self._pages_dir,
+                          self._cache_dir):
+            self._create_directory(directory)
+
         self._account = Account(
             self._config.misc.data_dir,
             self._config.account.username,
@@ -41,7 +49,8 @@ class Manager(object):
         self._outside_browser = Browser(
             page_archiver)
 
-        self._shops = Shops(self._account)
+        self._cache = QueryCache(self._cache_dir)
+        self._shops = Shops(self._account, self._cache)
 
         self._finished = Deferred()
 
@@ -67,10 +76,6 @@ class Manager(object):
             os.mkdir(directory)
 
     def run(self):
-        for directory in (self._bad_pages_dir,
-                          self._pages_dir):
-            self._create_directory(directory)
-
         if not self._config.application.dailies:
             all_tasks = Deferred()
         else:
