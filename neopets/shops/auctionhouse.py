@@ -1,18 +1,26 @@
+import re
+import logging
 from collections import namedtuple
 from twisted.internet import defer
 from neopets.utils import np_to_int
 from neopets.common import PageParseError
 
+class BidError(Exception):
+    pass
 
-Auction = namedtuple('Auction', ('link', 'item', 'last_bid', 'current_price', 'last_bidder'))
+Auction = namedtuple('Auction', ('link', 'item', 'last_bid', 'current_price', 'last_bidder', 'id'))
 
 Bidder = namedtuple('Bidder', ('name', 'bid'))
 
-AuctionDetails = namedtuple('AuctionDetails', ('open', 'next_bid', 'bidders'))
+AuctionDetails = namedtuple('AuctionDetails', ('open', 'next_bid', 'bidders', 'refcode'))
 
 class AuctionHouse(object):
+    _ID_RE = re.compile(r'auction_id=(\d+)')
+    _WAIT_RE = re.compile(r'You must wait a few more seconds before you can bid on this auction again!')
+
     def __init__(self, account):
         self._account = account
+        self._logger = logging.getLogger(__name__)
 
     @defer.deferredGenerator
     def get_main_page(self, page=0):
@@ -34,14 +42,17 @@ class AuctionHouse(object):
                 # Neofrinds only
                 continue
 
+            link = tds[1].find('a')['href']
+            auction_id = self._ID_RE.search(link).group(1)
             last_bidder = tds[7].text if tds[7].text != 'nobody' else None
 
             auctions.append(Auction(
-                tds[1].find('a')['href'],
+                link,
                 tds[2].find('a').text,
                 int(tds[5].find('b').text),
                 int(tds[6].find('b').text),
-                last_bidder))
+                last_bidder,
+                auction_id))
 
         yield auctions
 
@@ -65,7 +76,27 @@ class AuctionHouse(object):
         auction_open = page.find('b', text='Time Left in Auction : ').parent.nextSibling.strip() != 'Closed'
         if auction_open:
             next_bid = int(page.find('input', attrs={'type' : 'text', 'name' : 'amount'})['value'])
+            refcode = page.find('input', attrs={'name' : '_ref_ck'})['value']
         else:
             next_bid = None
+            refcode = None
 
-        yield AuctionDetails(auction_open, next_bid, bidders)
+        yield AuctionDetails(auction_open, next_bid, bidders, refcode)
+
+    @defer.deferredGenerator
+    def bid(self, auction_id, price, refcode):
+        self._logger.debug('Bidding %d in auction %s', price, auction_id)
+        d = defer.waitForDeferred(self._account.post(
+            'auctions.phtml?type=placebid',
+            data={'auction_id' : auction_id, 'amount' : str(price), '_ref_ck' : refcode }))
+        yield d
+
+        page = d.getResult()
+        if not page.find('b', text='BID SUCCESSFUL'):
+            if page.find('p', text=self._WAIT_RE):
+                self._logger.warning('Bidding %s cause the \'you must wait\' response')
+                return
+
+            import ipdb
+            ipdb.set_trace()
+            raise BidError()

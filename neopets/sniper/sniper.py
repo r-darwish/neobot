@@ -46,7 +46,9 @@ class SniperManager(object):
 
     @defer.deferredGenerator
     def _snipe(self, auction, est_price):
-        self._logger.info('Sniping auction %s', auction)
+        sniper_logger = logging.getLogger('%s(%s)' % (__name__, auction.id))
+
+        sniper_logger.info('Sniping auction %s', auction.item)
         while True:
             d = defer.waitForDeferred(self._shops.auction_house.get_auction_page(str(auction.link)))
             yield d
@@ -55,38 +57,41 @@ class SniperManager(object):
             top_bidder = info.bidders[0].name
             me_top = top_bidder == self._account.username
             if not info.open:
-                self._logger.info('Auction closed. Won: %s', me_top)
+                sniper_logger.info('Auction closed. Won: %s', me_top)
                 return
 
-            self._logger.debug('Auction refreshed. Top bidder: %s. Next bid: %d',
+            sniper_logger.debug('Auction refreshed. Top bidder: %s. Next bid: %d',
                                info.bidders[0], info.next_bid)
 
             if me_top:
                 continue
 
-            self._logger.info('We\'re not at the top!')
-
             if self._account.neopoints < info.next_bid:
-                self._logger.warning(
+                sniper_logger.warning(
                     'We don\'t have enough neopoints for the next bid. Have: %d, Required: %d',
                     self._account.neopoints, info.next_bid)
                 return
 
             if est_price - info.next_bid < self._PROFIT_THRESHOLD:
-                self._logger.info('Next bit will be non-profitable. Quitting it')
+                sniper_logger.info('Next bit will be non-profitable. Quitting it')
                 return
+
+            sniper_logger.info('We\'re not at the top. Bidding for %d', info.next_bid)
+            d = defer.waitForDeferred(self._shops.auction_house.bid(
+                auction.id, info.next_bid, info.refcode))
+            yield d
 
     @defer.deferredGenerator
     def _second_analyze(self, auction):
-        d = defer.waitForDeferred(self._shops.est_price_calc.calc(auction.item))
-        yield d
-
-        try:
         if not self._running:
             self._logger.warning('Second analysis called while paused')
             yield False, 0
             return
 
+        d = defer.waitForDeferred(self._shops.est_price_calc.calc(auction.item))
+        yield d
+
+        try:
             est_price, deviation = d.getResult()
 
         except ShopWizardExhaustedError as e:
