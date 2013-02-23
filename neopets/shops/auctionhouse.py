@@ -17,6 +17,7 @@ AuctionDetails = namedtuple('AuctionDetails', ('open', 'next_bid', 'bidders', 'r
 class AuctionHouse(object):
     _ID_RE = re.compile(r'auction_id=(\d+)')
     _WAIT_RE = re.compile(r'You must wait a few more seconds before you can bid on this auction again!')
+    _RACE_RE = re.compile(r'This means you have to bid at least')
 
     def __init__(self, account):
         self._account = account
@@ -95,6 +96,10 @@ class AuctionHouse(object):
         if not page.find('b', text='BID SUCCESSFUL'):
             if page.find('p', text=self._WAIT_RE):
                 self._logger.warning('Bidding %s cause the \'you must wait\' response')
+                return
+
+            if page.find('p', text=self._RACE_RE):
+                self._logger.warning('Someone else bidded higher than us')
                 return
 
             import ipdb
