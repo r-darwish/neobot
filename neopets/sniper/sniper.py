@@ -171,6 +171,10 @@ class SniperManager(object):
 
     @defer.deferredGenerator
     def _iteration(self):
+        if not self._running:
+            self._logger.warning('Sniper iteration called while paused')
+            return
+
         self._logger.debug('Sniper iteration')
 
         d = defer.waitForDeferred(self._shops.auction_house.get_main_page(1))
@@ -186,5 +190,3 @@ class SniperManager(object):
             reactor.callLater(0, self._handle_auction, auction)
 
         self._next_iteration = reactor.callLater(self._INTERVAL, self._iteration)
-
-        yield True
