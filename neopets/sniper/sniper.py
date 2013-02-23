@@ -93,7 +93,7 @@ class SniperManager(object):
             yield False, 0
             return
 
-        d = defer.waitForDeferred(self._shops.est_price_calc.calc(auction.item))
+        d = defer.waitForDeferred(self._shops.est_price_calc.calc(auction.item, 5))
         yield d
 
         try:
