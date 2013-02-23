@@ -82,6 +82,11 @@ class SniperManager(object):
         yield d
 
         try:
+        if not self._running:
+            self._logger.warning('Second analysis called while paused')
+            yield False, 0
+            return
+
             est_price, deviation = d.getResult()
 
         except ShopWizardExhaustedError as e:
