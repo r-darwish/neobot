@@ -18,6 +18,7 @@ class AuctionHouse(object):
     _ID_RE = re.compile(r'auction_id=(\d+)')
     _WAIT_RE = re.compile(r'You must wait a few more seconds before you can bid on this auction again!')
     _RACE_RE = re.compile(r'This means you have to bid at least')
+    _CLOSE_RE = re.compile(r'This auction is closed')
 
     def __init__(self, account):
         self._account = account
@@ -100,6 +101,10 @@ class AuctionHouse(object):
 
             if page.find('p', text=self._RACE_RE):
                 self._logger.warning('Someone else bidded higher than us')
+                return
+
+            if page.find('p', text=self._CLOSE_re):
+                self._logger.error('Auction is closed')
                 return
 
             import ipdb
