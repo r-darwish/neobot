@@ -9,7 +9,7 @@ class SniperManager(object):
     _BARGAIN_THRSHOLD = 2000
     _PROFIT_THRESHOLD = 1500
     _INTERESTING_KEYWORDS = ('codestone', )
-    _BAD_KEYWORDS = ('map', )
+    _BAD_KEYWORDS = ('map', 'plushie', 'fading', 'weak')
 
     def __init__(self, account, shops):
         self._account = account
