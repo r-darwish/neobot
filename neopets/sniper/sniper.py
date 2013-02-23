@@ -82,7 +82,7 @@ class SniperManager(object):
         yield d
 
         try:
-            est_price, _ = d.getResult()
+            est_price, deviation = d.getResult()
 
         except ShopWizardExhaustedError as e:
             self._handle_exaustion(e.resume_time)
@@ -91,6 +91,12 @@ class SniperManager(object):
 
         except ItemNotFoundInShopWizardError:
             self._logger.error('%s not found in shop wizard', auction.item)
+            yield False, 0
+            return
+
+        if deviation > 25:
+            self._logger.info('Estimated price for %s is too risky. Deviation: %.2f%%',
+                              auction.item, deviation)
             yield False, 0
             return
 
