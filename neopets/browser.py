@@ -5,7 +5,8 @@ from urlparse import urlparse
 from urllib import urlencode
 from twisted.internet.protocol import Protocol
 from twisted.internet import reactor, defer
-from twisted.web.client import Agent, CookieAgent, HTTPConnectionPool
+from twisted.web.client import Agent, CookieAgent, HTTPConnectionPool, \
+    ContentDecoderAgent, GzipDecoder
 from cookielib import LWPCookieJar, CookieJar
 from StringIO import StringIO
 from twisted.web.http_headers import Headers
@@ -76,7 +77,8 @@ class Browser(object):
 
         pool = HTTPConnectionPool(reactor, persistent=True)
         pool.maxPersistentPerHost = 10
-        self._agent = CookieAgent(Agent(reactor, pool=pool), cj)
+        self._agent = CookieAgent(ContentDecoderAgent(Agent(reactor, pool=pool),
+                                                       [('gzip', GzipDecoder)]), cj)
 
     @defer.deferredGenerator
     def _request(self, request_type, url, referer=None, body=None):
