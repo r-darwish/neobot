@@ -5,12 +5,13 @@ from urlparse import urlparse
 from urllib import urlencode
 from twisted.internet.protocol import Protocol
 from twisted.internet import reactor, defer
-from twisted.web.client import Agent, CookieAgent
+from twisted.web.client import Agent, CookieAgent, HTTPConnectionPool
 from cookielib import LWPCookieJar, CookieJar
 from StringIO import StringIO
 from twisted.web.http_headers import Headers
 from zope.interface import implements
 from twisted.web.iweb import IBodyProducer
+
 
 
 RequestData = namedtuple('RequestData', ('url', 'referer', 'data'))
@@ -73,7 +74,9 @@ class Browser(object):
         else:
             cj = CookieJar()
 
-        self._agent = CookieAgent(Agent(reactor), cj)
+        pool = HTTPConnectionPool(reactor, persistent=True)
+        pool.maxPersistentPerHost = 10
+        self._agent = CookieAgent(Agent(reactor, pool=pool), cj)
 
     @defer.deferredGenerator
     def _request(self, request_type, url, referer=None, body=None):
