@@ -1,7 +1,7 @@
 import logging
 import time
 import os
-from twisted.internet.defer import Deferred, succeed
+from twisted.internet import defer
 from neopets.sniper import SniperManager
 from neopets.account import Account
 from neopets.database import get_engine
@@ -73,15 +73,19 @@ class Manager(object):
         if not os.path.isdir(directory):
             os.mkdir(directory)
 
+    @defer.deferredGenerator
     def run(self):
-        if not self._config.application.dailies:
-            all_tasks = Deferred()
-        else:
-            all_tasks = SerialTasks(self._dailies, "Dailies", self._error_callback).run()
+        if self._config.application.dailies:
+            all_tasks = defer.waitForDeferred(
+                SerialTasks(self._dailies, "Dailies", self._error_callback).run())
+            yield all_tasks
+            all_tasks.getResult()
 
-        self._sniper.run()
+        if self._config.application.sniper:
+            self._sniper.run()
+            yield defer.waitForDeferred(defer.Deferred())
 
-        return all_tasks
+        yield None
 
     def _dump_page_error(self, page, traceback):
         name = os.path.join(self._bad_pages_dir, str(time.time()))

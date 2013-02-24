@@ -35,6 +35,11 @@ def _configure_logging(config):
 
     root_logger.setLevel(min(config.logging.console_level, config.logging.file_level))
 
+def _start(config):
+    manager = Manager(config)
+    d = manager.run()
+    d.addCallback(_finished)
+
 def main():
     try:
         _, config_filename = sys.argv
@@ -46,9 +51,8 @@ def main():
 
     _configure_logging(config)
 
-    manager = Manager(config)
-    d = manager.run()
-    d.addCallback(_finished)
+    reactor.callLater(0, _start, config)
+
     reactor.run()
 
     return 0

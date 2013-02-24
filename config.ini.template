@@ -14,6 +14,7 @@ file_level = DEBUG
 dailies = false
 restockers = magic
 restocker_refresh_interval = 10
+sniper = false
 
 [sniper]
 refresh_interval = 30

@@ -5,8 +5,9 @@ from ConfigParser import SafeConfigParser
 Account = namedtuple('Account', ('username', 'password'))
 Misc = namedtuple('Misc', ('data_dir', 'page_archiver'))
 Logging = namedtuple('Logging', ('console_level', 'file_level'))
-Application = namedtuple('Application', ('dailies', 'restockers',
-                                         'restocker_refresh_interval'))
+Application = namedtuple(
+    'Application',
+    ('dailies', 'restockers', 'restocker_refresh_interval', 'sniper'))
 Sniper = namedtuple(
     'Sniper',
     ('refresh_interval', 'auctions_to_analyze', 'bargain_threshold', 'profit_threshold',
@@ -53,6 +54,7 @@ def load_from_ini_file(filename):
     application = Application(
         cp.getboolean('application', 'dailies'),
         cp.get('application', 'restockers').split(','),
-        cp.getint('application', 'restocker_refresh_interval'))
+        cp.getint('application', 'restocker_refresh_interval'),
+        cp.getboolean('application', 'sniper'))
 
     return Config(account, misc, logging, application, sniper)
