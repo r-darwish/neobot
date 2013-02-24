@@ -4,6 +4,7 @@ import shelve
 from collections import namedtuple
 from urlparse import urlparse
 from urllib import urlencode
+from twisted.internet import reactor
 from twisted.web.client import getPage
 
 
@@ -79,7 +80,7 @@ class Browser(object):
 
     def _on_download(self, page, request_data):
         if self._page_archiver:
-            self._page_archiver.archive(
+            reactor.callInThread(self._page_archiver.archive,
                 page, request_data.url, request_data.data, request_data.referer)
         return page
 
