@@ -14,3 +14,16 @@ file_level = DEBUG
 dailies = false
 restockers = magic
 restocker_refresh_interval = 10
+
+[sniper]
+refresh_interval = 30
+auctions_to_analyze = 3
+bargain_threshold = 2000
+profit_threshold = 1500
+interesting_keywords = codestone
+bad_keywords = map, plushie
+minimum_np_for_playing = 4000
+minimal_auction_number = 0
+item_samples = 5
+item_price_max_deviation = 33
+suspecious_yield_threshold = 100

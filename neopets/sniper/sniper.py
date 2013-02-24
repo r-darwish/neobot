@@ -4,20 +4,14 @@ from neopets.shops import ShopWizardExhaustedError, ItemNotFoundInShopWizardErro
 
 
 class SniperManager(object):
-    _INTERVAL = 60
-    _AUCTIONS_TO_ANALYZE = 20
-    _BARGAIN_THRSHOLD = 2000
-    _PROFIT_THRESHOLD = 1500
-    _INTERESTING_KEYWORDS = ('codestone', )
-    _BAD_KEYWORDS = ('map', 'plushie', 'fading', 'weak')
-
-    def __init__(self, account, shops):
+    def __init__(self, account, shops, config):
         self._account = account
         self._logger = logging.getLogger(__name__)
         self._shops = shops
         self._handled_auctions = set()
         self._next_iteration = None
         self._running = False
+        self._config = config
 
     def run(self):
         reactor.callLater(0, self._iteration)
@@ -37,7 +31,7 @@ class SniperManager(object):
                 self._next_iteration.reset(60 * time_to_resume + 2)
 
     def _is_interesting_keyword(self, auction):
-        for keyword in self._INTERESTING_KEYWORDS:
+        for keyword in self._config.interesting_keywords:
             if keyword in auction.item.lower():
                 self._logger.debug('%s is interesting because of keyword %s', auction.item, keyword)
                 return True
@@ -74,7 +68,7 @@ class SniperManager(object):
                     info.next_bid, our_bid, self._account.neopoints, required_np)
                 return
 
-            if est_price - info.next_bid < self._PROFIT_THRESHOLD:
+            if est_price - info.next_bid < self._config.profit_threshold:
                 sniper_logger.info('Next bit will be non-profitable. Quitting it')
                 return
 
@@ -87,13 +81,14 @@ class SniperManager(object):
             our_bid = info.next_bid
 
     @defer.deferredGenerator
-    def _second_analyze(self, auction):
+    def _second_analysis(self, auction):
         if not self._running:
             self._logger.warning('Second analysis called while paused')
             yield False, 0
             return
 
-        d = defer.waitForDeferred(self._shops.est_price_calc.calc(auction.item, 5))
+        d = defer.waitForDeferred(self._shops.est_price_calc.calc(auction.item,
+                                                                  self._config.item_samples))
         yield d
 
         try:
@@ -109,7 +104,7 @@ class SniperManager(object):
             yield False, 0
             return
 
-        if deviation > 33:
+        if deviation > self._config.item_price_max_deviation:
             self._logger.info('Estimated price for %s is too risky. Deviation: %.2f%%',
                               auction.item, deviation)
             yield False, 0
@@ -118,11 +113,12 @@ class SniperManager(object):
         delta = est_price - auction.current_price
         yield_ = (float(est_price) / auction.current_price - 1) * 100
 
-        if delta <= self._BARGAIN_THRSHOLD:
+        if delta <= self._config.bargain_threshold:
             yield False, 0
             return
 
-        if (yield_ > 100.0) and (not self._is_interesting_keyword(auction)):
+        if (yield_ > self._config.suspecious_yield_threshold) \
+           and (not self._is_interesting_keyword(auction)):
             self._logger.info(
                 'Found a suspecious bargain: %s (current price: %d, est price: %d, yield: %.2f%%, profit: %d)',
                 auction.item, auction.current_price, est_price, yield_, delta)
@@ -133,13 +129,20 @@ class SniperManager(object):
             'Found a bargain: %s (current price: %d, est price: %d, yield: %.2f%%, profit: %d)',
             auction.item, auction.current_price, est_price, yield_, delta)
 
+        if self._account.neopoints < auction.current_price:
+            self._logger.info(
+                    'We don\'t have enough neopoints for the next bid. Next bid: %d, Have: %d',
+                    auction.current_price, self._account.neopoints)
+            yield False, 0
+            return
+
         yield True, est_price
 
     def _first_analysis(self, auction):
         if self._is_interesting_keyword(auction):
             return True
 
-        for keyword in self._BAD_KEYWORDS:
+        for keyword in self._config.bad_keywords:
             if keyword in auction.item.lower():
                 self._logger.debug('%s is skipped because of keyword %s', auction.item, keyword)
                 return False
@@ -163,7 +166,7 @@ class SniperManager(object):
     @defer.deferredGenerator
     def _handle_auction(self, auction):
         if self._first_analysis(auction):
-            d = defer.waitForDeferred(self._second_analyze(auction))
+            d = defer.waitForDeferred(self._second_analysis(auction))
             yield d
             should_continue, est_price = d.getResult()
 
@@ -192,16 +195,24 @@ class SniperManager(object):
 
         self._logger.debug('Sniper iteration')
 
-        d = defer.waitForDeferred(self._shops.auction_house.get_main_page(1))
+        d = defer.waitForDeferred(self._shops.auction_house.get_main_page(0))
         yield d
         auctions = d.getResult()
 
-        for auction in auctions[:self._AUCTIONS_TO_ANALYZE]:
-            if auction.link in self._handled_auctions:
-                continue
+        try:
+            if self._account.neopoints < self._config.minimum_np_for_playing:
+                self._logger.debug('Sniper iteration is skipped because we don\'t have NPs')
+                return
 
-            self._handled_auctions.add(auction.link)
+            for auction in auctions[
+                    self._config.minimal_auction_number: \
+                    self._config.minimal_auction_number + self._config.auctions_to_analyze]:
+                if auction.link in self._handled_auctions:
+                    continue
 
-            reactor.callLater(0, self._handle_auction, auction)
+                self._handled_auctions.add(auction.link)
 
-        self._next_iteration = reactor.callLater(self._INTERVAL, self._iteration)
+                reactor.callLater(0, self._handle_auction, auction)
+
+        finally:
+            self._next_iteration = reactor.callLater(self._config.refresh_interval, self._iteration)

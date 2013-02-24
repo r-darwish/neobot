@@ -52,8 +52,6 @@ class Manager(object):
         self._cache = QueryCache(self._cache_dir)
         self._shops = Shops(self._account, self._cache)
 
-        self._finished = Deferred()
-
         self._dailies = [
             dailies.Shrine(self._account),
             dailies.Interest(self._account),
@@ -65,7 +63,7 @@ class Manager(object):
             games.HideNSeek(self._account),
         ]
 
-        self._sniper = SniperManager(self._account, self._shops)
+        self._sniper = SniperManager(self._account, self._shops, self._config.sniper)
 
     @staticmethod
     def _create_directory(directory):
