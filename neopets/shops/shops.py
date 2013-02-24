@@ -2,6 +2,7 @@ from neopets.shops.neopianshops import NeopianShops, NeopianShop
 from neopets.shops.wizard import Wizard
 from neopets.shops.auctionhouse import AuctionHouse
 from neopets.shops.pricecalc import EstPriceCalculator
+from neopets.shops.myshop import MyShop
 
 class Shops(object):
     def __init__(self, account, cache):
@@ -10,6 +11,11 @@ class Shops(object):
         self._auction_house = AuctionHouse(account)
         self._est_price_calc = EstPriceCalculator(self)
         self._est_price_calc.calc = cache.cache(self._est_price_calc.calc)
+        self._my_shop = MyShop(account)
+
+    @property
+    def my_shop(self):
+        return self._my_shop
 
     @property
     def est_price_calc(self):
