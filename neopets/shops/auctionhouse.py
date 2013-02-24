@@ -87,7 +87,8 @@ class AuctionHouse(object):
 
     @defer.deferredGenerator
     def bid(self, auction_id, price, refcode):
-        self._logger.debug('Bidding %d in auction %s', price, auction_id)
+        logger = logging.getLogger('%s(%s)' % (__name__, auction_id))
+        logger.debug('Bidding %d', price)
         d = defer.waitForDeferred(self._account.post(
             'auctions.phtml?type=placebid',
             data={'auction_id' : auction_id, 'amount' : str(price), '_ref_ck' : refcode }))
@@ -96,15 +97,15 @@ class AuctionHouse(object):
         page = d.getResult()
         if not page.find('b', text='BID SUCCESSFUL'):
             if page.find('p', text=self._WAIT_RE):
-                self._logger.warning('Bidding %s cause the \'you must wait\' response')
+                logger.warning('Bidding caused the \'you must wait\' response')
                 return
 
             if page.find('p', text=self._RACE_RE):
-                self._logger.warning('Someone else bidded higher than us')
+                logger.warning('Someone else bidded higher than us')
                 return
 
-            if page.find('p', text=self._CLOSE_re):
-                self._logger.error('Auction is closed')
+            if page.find('p', text=self._CLOSE_RE):
+                logger.error('Auction is closed')
                 return
 
             import ipdb
