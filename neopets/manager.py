@@ -45,6 +45,7 @@ class Manager(object):
         self._finished = Deferred()
 
         self._dailies = [
+            dailies.Shrine(self._account),
             dailies.Interest(self._account),
             dailies.ShopTill(self._account),
             dailies.Tombola(self._account),
