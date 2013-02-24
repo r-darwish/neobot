@@ -15,17 +15,12 @@ class EstPriceCalculator(object):
         d = defer.waitForDeferred(self._shops.wizard.get_offers(item))
         yield d
 
-        offers = d.getResult()
-        letters_page = set()
-        for offer in offers:
-            letters_page.add(offer.owner[0])
-
-        letters_page = frozenset(letters_page)
+        offers, section = d.getResult()
 
         n_offers = len(offers)
         if n_offers == 0:
             self._logger.warning('No results for %s', item)
-            yield (0, letters_page)
+            yield (0, section)
             return
 
         if n_offers < self._MINIMUM_ENTRIES:
@@ -42,7 +37,7 @@ class EstPriceCalculator(object):
 
         avg /= weights
 
-        yield (avg, letters_page)
+        yield (avg, section)
 
     @defer.deferredGenerator
     def calc(self, item, samples=3):

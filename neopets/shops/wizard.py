@@ -1,3 +1,4 @@
+import logging
 import re
 from collections import namedtuple
 from twisted.internet import defer
@@ -27,9 +28,38 @@ class ShopWizardExhaustedError(Exception):
 class Wizard(object):
     _SHOP_LINKS = re.compile(r'browseshop\.phtml')
     _LINK_ATTRS = dict(href=_SHOP_LINKS)
+    _SECTIONS = (
+        frozenset(('a', 'n', '0')),
+        frozenset(('b', 'o', '1')),
+        frozenset(('c', 'p', '2')),
+        frozenset(('d', 'q', '3')),
+        frozenset(('e', 'r', '4')),
+        frozenset(('f', 's', '5')),
+        frozenset(('g', 't', '6')),
+        frozenset(('h', 'u', '7')),
+        frozenset(('i', 'v', '8')),
+        frozenset(('j', 'w', '9')),
+        frozenset(('k', 'x', '_')),
+        frozenset(('l', 'y')),
+        frozenset(('m', 'z')))
 
     def __init__(self, account):
         self._account = account
+        self._logger = logging.getLogger(__name__)
+        self._my_section = self.get_section(account.username[0])
+
+    @property
+    def my_section(self):
+        return self._my_section
+
+    @classmethod
+    def get_section(cls, letter):
+        letter = letter.lower()
+        for sec in cls._SECTIONS:
+            if letter in sec:
+                return sec
+        else:
+            raise Exception('No section for %s', letter)
 
     @defer.deferredGenerator
     def get_offers(self, item):
@@ -48,6 +78,8 @@ class Wizard(object):
                    nextSibling.nextSibling.nextSibling.text
             raise ShopWizardExhaustedError(int(back))
 
+        letters = set()
+
         offers = []
         for link in page.findAll('a', attrs=self._LINK_ATTRS):
             tr = link.parent.parent
@@ -56,11 +88,24 @@ class Wizard(object):
             stock = to_int(tds[2].text)
             price = np_to_int(tds[3].text)
             owner = link.text
+            letters.add(owner[0].lower())
 
             offers.append(Offer(link.attrMap['href'], item_name, stock, price, owner))
 
         if len(offers) == 0:
             raise ItemNotFoundInShopWizardError(item)
 
-        yield offers
+        yield offers, frozenset(letters)
 
+    @defer.deferredGenerator
+    def get_offers_from_section(self, item, section):
+        while True:
+            d = defer.waitForDeferred(self.get_offers(item))
+            yield d
+            offers, fetched_section = d.getResult()
+
+            if len(fetched_section - section) == 0:
+                yield offers
+                return
+
+            self._logger.debug('Fetch section %s, which is not our section', fetched_section)
