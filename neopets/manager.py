@@ -1,6 +1,7 @@
 import logging
 import time
 import os
+import traceback
 from twisted.internet import defer
 from neopets.sniper import SniperManager
 from neopets.account import Account
@@ -13,6 +14,7 @@ from neopets.shops import Shops
 from neopets.page_archiver import PageArchiver
 from neopets.browser import Browser
 from neopets.cache import QueryCache
+from neopets.autopricer import AutoPricer
 
 
 class Manager(object):
@@ -64,6 +66,7 @@ class Manager(object):
         ]
 
         self._sniper = SniperManager(self._account, self._shops, self._config.sniper)
+        self._autopricer = AutoPricer(self._account, self._shops)
 
     @staticmethod
     def _create_directory(directory):
@@ -80,6 +83,17 @@ class Manager(object):
                 SerialTasks(self._dailies, "Dailies", self._error_callback).run())
             yield all_tasks
             all_tasks.getResult()
+
+        self._logger.info('Starting autopricer')
+        d = defer.waitForDeferred(self._autopricer.run())
+        yield d
+
+        try:
+            d.getResult()
+        except Exception as e:
+            self._logger.error('Autopricer error: %s', traceback.format_exc(e))
+        else:
+            self._logger.info('Autopricer done')
 
         if self._config.application.sniper:
             self._sniper.run()
