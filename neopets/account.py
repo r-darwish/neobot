@@ -2,7 +2,7 @@ import os
 import logging
 from BeautifulSoup import BeautifulSoup
 from neopets.browser import Browser
-from neopets.common import get_np
+from neopets.common import get_np, NoNpInPage
 
 
 class LoginError(Exception):
@@ -60,7 +60,10 @@ class Account(object):
                         for x in cell.childGenerator()])
                 self._logger.info("Something has happned: %s", text)
 
-            self._neopoints = get_np(soup)
+            try:
+                self._neopoints = get_np(soup)
+            except NoNpInPage:
+                pass
 
             return soup
 

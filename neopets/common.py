@@ -1,3 +1,6 @@
+class NoNpInPage(Exception):
+    pass
+
 class PageParseError(Exception):
     def __init__(self, page):
         super(PageParseError, self).__init__()
@@ -5,4 +8,7 @@ class PageParseError(Exception):
 
 
 def get_np(page):
-    return int(page.find('a', id='npanchor').text.replace(',', ''))
+    a = page.find('a', id='npanchor')
+    if not a:
+        raise NoNpInPage()
+    return int(a.text.replace(',', ''))
