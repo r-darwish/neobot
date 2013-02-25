@@ -8,7 +8,7 @@ from twisted.internet import reactor, defer
 from twisted.web.client import Agent, CookieAgent, HTTPConnectionPool, \
     ContentDecoderAgent, GzipDecoder
 from cookielib import LWPCookieJar, CookieJar
-from StringIO import StringIO
+from cStringIO import StringIO
 from twisted.web.http_headers import Headers
 from zope.interface import implements
 from twisted.web.iweb import IBodyProducer
