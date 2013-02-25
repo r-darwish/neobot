@@ -10,7 +10,7 @@ class PageArchiver(object):
 
     def archive(self, page, url, data, referer):
         query = self._db.tables.pages.insert().values(
-            time=datetime.datetime.now(), url=url.geturl(), data=str(data),
+            time=datetime.datetime.now(), url=url, data=data,
             referer=referer)
 
         with self._db.engine.connect() as conn:
@@ -19,7 +19,7 @@ class PageArchiver(object):
 
         page_path = os.path.join(
             self._archive_dir,
-            '%04d.html' % (page_id, ))
+            '%08d.html' % (page_id, ))
 
         with open(page_path, 'w') as p:
             p.write(str(page))

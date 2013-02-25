@@ -114,6 +114,10 @@ class Browser(object):
             yield d
             page = d.getResult()
 
+        if self._page_archiver:
+            reactor.callInThread(self._page_archiver.archive,
+                    page, url, body, referer)
+
         yield page
 
     def get(self, url, referer=None):
