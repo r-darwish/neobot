@@ -64,15 +64,20 @@ class AuctionHouse(object):
         yield d
         page = d.getResult()
 
-        head = page.find('b', text='Bidder')
-        if not head:
+        time_left = page.find('b', text='Time Left in Auction : ')
+        if not time_left:
+            import ipdb
+            ipdb.set_trace()
             raise PageParseError(page)
 
+
+        head = page.find('b', text='Bidder')
         bidders = []
-        table = head.findParent('table')
-        for tr in table.findAll('tr')[1:]:
-            tds = tr.findAll('td')
-            bidders.append(Bidder(tds[0].text, np_to_int(tds[1].find('b').text)))
+        if head:
+            table = head.findParent('table')
+            for tr in table.findAll('tr')[1:]:
+                tds = tr.findAll('td')
+                bidders.append(Bidder(tds[0].text, np_to_int(tds[1].find('b').text)))
 
 
         auction_open = page.find('b', text='Time Left in Auction : ').parent.nextSibling.strip() != 'Closed'

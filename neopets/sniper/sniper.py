@@ -51,17 +51,25 @@ class SniperManager(object):
             yield d
             info = d.getResult()
 
-            top_bidder = info.bidders[0].name
-            me_top = top_bidder == self._account.username
-            if not info.open:
-                sniper_logger.info('Auction closed. Won: %s', me_top)
-                return
+            if len(info.bidders) > 0:
+                top_bidder = info.bidders[0].name
+                me_top = top_bidder == self._account.username
+                if not info.open:
+                    sniper_logger.info('Auction closed. Won: %s', me_top)
+                    return
 
-            sniper_logger.debug('Auction refreshed. Top bidder: %s. Next bid: %d',
-                               info.bidders[0], info.next_bid)
+                sniper_logger.debug('Auction refreshed. Top bidder: %s. Next bid: %d',
+                                   info.bidders[0], info.next_bid)
 
-            if me_top:
-                continue
+                if me_top:
+                    continue
+            else:
+                if not info.open:
+                    sniper_logger.info('Auction closed without bidders')
+                    return
+
+                sniper_logger.debug('Auction refreshed. Top bidder: None. Next bid: %d',
+                                   info.next_bid)
 
             next_bid = info.next_bid + random.randint(0, 100)
 
