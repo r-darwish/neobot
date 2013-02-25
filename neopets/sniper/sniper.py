@@ -1,3 +1,4 @@
+import time
 import logging
 import random
 from twisted.internet import reactor, defer
@@ -181,9 +182,11 @@ class SniperManager(object):
                 return
 
             self.stop()
+            before = time.time()
             d = defer.waitForDeferred(self._snipe(auction, est_price))
             yield d
-            self._logger.info('Sniping done')
+            after = time.time()
+            self._logger.info('Sniping done (%.2f seconds)', after - before)
 
             try:
                 d.getResult()
