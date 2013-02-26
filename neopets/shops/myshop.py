@@ -23,6 +23,11 @@ class MyShop(object):
 
         name_col = page.find('b', text='Name')
         if not name_col:
+            if page.find('b', text='There are no items in your shop!'):
+                self._logger.info('No items in the shop')
+                yield []
+                return
+
             raise PageParseError(page)
 
         items = []
