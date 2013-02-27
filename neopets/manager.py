@@ -25,6 +25,9 @@ class Manager(object):
             self._config.misc.data_dir, 'bad_pages')
         self._cache_dir = os.path.join(
             self._config.misc.data_dir, 'cache')
+        self._auctions_dir = os.path.join(
+            self._config.misc.data_dir, 'auctions')
+
 
         self._db = get_engine(self._config.misc.data_dir)
 
@@ -39,7 +42,8 @@ class Manager(object):
 
         for directory in (self._bad_pages_dir,
                           self._pages_dir,
-                          self._cache_dir):
+                          self._cache_dir,
+                          self._auctions_dir):
             self._create_directory(directory)
 
         self._account = Account(
@@ -65,7 +69,8 @@ class Manager(object):
             games.HideNSeek(self._account),
         ]
 
-        self._sniper = SniperManager(self._account, self._shops, self._config.sniper)
+        self._sniper = SniperManager(self._account, self._shops, self._config.sniper,
+                                     self._auctions_dir)
         self._autopricer = AutoPricer(self._account, self._shops)
 
     @staticmethod

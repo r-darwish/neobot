@@ -1,3 +1,4 @@
+import os
 import time
 import logging
 import random
@@ -6,7 +7,7 @@ from neopets.shops import ShopWizardExhaustedError, ItemNotFoundInShopWizardErro
 
 
 class SniperManager(object):
-    def __init__(self, account, shops, config):
+    def __init__(self, account, shops, config, auctions_dir):
         self._account = account
         self._logger = logging.getLogger(__name__)
         self._shops = shops
@@ -14,6 +15,7 @@ class SniperManager(object):
         self._next_iteration = None
         self._running = False
         self._config = config
+        self._auctions_dir = auctions_dir
 
     def run(self):
         reactor.callLater(0, self._iteration)
@@ -40,6 +42,10 @@ class SniperManager(object):
 
         return False
 
+    def _dump_auction(self, auction, info):
+        with open(os.path.join(self._auctions_dir, str(auction.id)), 'w') as f:
+            f.write('%s\n\n%s' % (auction, '\n'.join(repr(b) for b in info.bidders)))
+
     @defer.deferredGenerator
     def _snipe(self, auction, est_price):
         sniper_logger = logging.getLogger('%s(%s)' % (__name__, auction.id))
@@ -56,6 +62,7 @@ class SniperManager(object):
                 me_top = top_bidder == self._account.username
                 if not info.open:
                     sniper_logger.info('Auction closed. Won: %s', me_top)
+                    self._dump_auction(auction, info)
                     return
 
                 sniper_logger.debug('Auction refreshed. Top bidder: %s. Next bid: %d',
