@@ -22,8 +22,7 @@ class Shrine(object):
             raise PageParseError(page)
 
         d = defer.waitForDeferred(self._account.post('desert/shrine.phtml', {'type' : 'approach'},
-                                                     'desert/shrine.phtml',
-                                                     manual_redirect=True))
+                                                     'desert/shrine.phtml'))
         yield d
         page = d.getResult()
 

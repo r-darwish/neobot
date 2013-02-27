@@ -129,7 +129,7 @@ class Browser(object):
     def get(self, url, referer=None):
         return self._request('GET', url, referer)
 
-    def post(self, url, data, referer=None, manual_redirect=False):
+    def post(self, url, data, referer=None):
         self._logger.debug('Posting to %s: %s', url, data)
         encoded_data = urlencode(data)
         return self._request('POST', url, referer, encoded_data)

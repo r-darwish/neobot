@@ -265,8 +265,7 @@ class Cliffhanger(object):
         self._before = get_np(page)
         self._logger.debug('Starting round %d (NP: %d)', self._round, self._before)
         d = self._account.post('games/cliffhanger/process_cliffhanger.phtml',
-                               dict(start_game='true', game_skill='3'),
-                               manual_redirect=True)
+                               dict(start_game='true', game_skill='3'))
         d.addCallback(self._solve)
         return d
 
@@ -298,8 +297,7 @@ class Cliffhanger(object):
         self._logger.debug('Answer is \'%s\'', answer)
 
         d = self._account.post('games/cliffhanger/process_cliffhanger.phtml',
-                               dict(solve_puzzle=answer),
-                               manual_redirect=True)
+                               dict(solve_puzzle=answer))
         d.addCallback(self._solved)
         return d
 
