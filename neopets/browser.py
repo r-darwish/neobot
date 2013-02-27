@@ -2,6 +2,7 @@ import os
 import logging
 from collections import namedtuple
 from urlparse import urlparse
+from threading import Lock
 from urllib import urlencode
 from twisted.internet.protocol import Protocol
 from twisted.internet import reactor, defer
@@ -79,6 +80,7 @@ class Browser(object):
         pool.maxPersistentPerHost = 10
         self._agent = CookieAgent(ContentDecoderAgent(Agent(reactor, pool=pool),
                                                        [('gzip', GzipDecoder)]), cj)
+        self._lock = Lock()
 
     @defer.deferredGenerator
     def _request(self, request_type, url, referer=None, body=None):
@@ -115,10 +117,14 @@ class Browser(object):
             page = d.getResult()
 
         if self._page_archiver:
-            reactor.callInThread(self._page_archiver.archive,
+            reactor.callInThread(self._archive_page,
                     page, url, body, referer)
 
         yield page
+
+    def _archive_page(self, page, url, body, referer):
+        with self._lock:
+            self._page_archiver.archive(page, url, body, referer)
 
     def get(self, url, referer=None):
         return self._request('GET', url, referer)
