@@ -1,2 +1,3 @@
 from shops import Shops
 from wizard import ShopWizardExhaustedError, ItemNotFoundInShopWizardError
+from auctionhouse import SomeoneBiddedHigherError

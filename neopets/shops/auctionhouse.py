@@ -5,8 +5,20 @@ from twisted.internet import defer
 from neopets.utils import np_to_int
 from neopets.common import PageParseError
 
+
 class BidError(Exception):
     pass
+
+
+class SomeoneBiddedHigherError(Exception):
+    def __init__(self, current_price):
+        super(SomeoneBiddedHigherError, self).__init__()
+        self._current_price = current_price
+
+    @property
+    def current_price(self):
+        return self._current_price
+
 
 Auction = namedtuple('Auction', ('link', 'item', 'last_bid', 'current_price', 'last_bidder', 'id'))
 
@@ -105,14 +117,14 @@ class AuctionHouse(object):
                 logger.warning('Bidding caused the \'you must wait\' response')
                 return
 
-            if page.find('p', text=self._RACE_RE):
-                logger.warning('Someone else bidded higher than us')
-                return
+            race = page.find('p', text=self._RACE_RE)
+            if race:
+                raise SomeoneBiddedHigherError(int(race.nextSibling.text))
 
             if page.find('p', text=self._CLOSE_RE):
                 logger.error('Auction is closed')
                 return
 
-            import ipdb
-            ipdb.set_trace()
+#            import ipdb
+ #           ipdb.set_trace()
             raise BidError()

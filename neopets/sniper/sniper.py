@@ -2,7 +2,8 @@ import os
 import time
 import logging
 from twisted.internet import reactor, defer
-from neopets.shops import ShopWizardExhaustedError, ItemNotFoundInShopWizardError
+from neopets.shops import ShopWizardExhaustedError, ItemNotFoundInShopWizardError, \
+    SomeoneBiddedHigherError
 
 
 class SniperManager(object):
@@ -79,24 +80,32 @@ class SniperManager(object):
 
             next_bid = info.next_bid
 
-            required_np = next_bid - our_bid
-            if self._account.neopoints < required_np:
-                sniper_logger.warning(
-                    'We don\'t have enough neopoints for the next bid. Next bid: %d, Our bid: %d, Have: %d, Required: %d',
-                    next_bid, our_bid, self._account.neopoints, required_np)
-                return
+            while True:
+                required_np = next_bid - our_bid
+                if self._account.neopoints < required_np:
+                    sniper_logger.warning(
+                        'We don\'t have enough neopoints for the next bid. Next bid: %d, Our bid: %d, Have: %d, Required: %d',
+                        next_bid, our_bid, self._account.neopoints, required_np)
+                    return
 
-            if est_price - next_bid < self._config.profit_threshold:
-                sniper_logger.info('Next bit will be non-profitable. Quitting it')
-                return
+                if est_price - next_bid < self._config.profit_threshold:
+                    sniper_logger.info('Next bit will be non-profitable. Quitting it')
+                    return
 
-            sniper_logger.info('We\'re not at the top. Bidding for %d', next_bid)
-            d = defer.waitForDeferred(self._shops.auction_house.bid(
-                auction.id, next_bid, info.refcode))
-            yield d
-            d.getResult()
+                sniper_logger.info('We\'re not at the top. Bidding for %d', next_bid)
+                d = defer.waitForDeferred(self._shops.auction_house.bid(
+                    auction.id, next_bid, info.refcode))
+                yield d
 
-            our_bid = next_bid
+                try:
+                    d.getResult()
+                except SomeoneBiddedHigherError as e:
+                    self._logger.warning('Someone bidded higher. Current price: %d', e.current_price)
+                    next_bid = e.current_price
+                    continue
+
+                our_bid = next_bid
+                break
 
     @defer.deferredGenerator
     def _second_analysis(self, auction):
