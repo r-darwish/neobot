@@ -1,7 +1,6 @@
 import os
 import time
 import logging
-import random
 from twisted.internet import reactor, defer
 from neopets.shops import ShopWizardExhaustedError, ItemNotFoundInShopWizardError
 
@@ -78,7 +77,7 @@ class SniperManager(object):
                 sniper_logger.debug('Auction refreshed. Top bidder: None. Next bid: %d',
                                    info.next_bid)
 
-            next_bid = info.next_bid + random.randint(0, 100)
+            next_bid = info.next_bid
 
             required_np = next_bid - our_bid
             if self._account.neopoints < required_np:
