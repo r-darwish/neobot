@@ -312,7 +312,6 @@ class Cliffhanger(object):
         np = get_np(page)
         if np != self._before:
             self._round += 1
-            self._logger.info('Going for another round')
             return self._start_round(page)
         else:
             self._logger.info('Done for today')
