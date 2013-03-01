@@ -3,6 +3,7 @@ import sys
 import os
 import logging
 import logging.handlers
+import traceback
 from twisted.internet import reactor
 from neopets import Manager, load_config
 
@@ -36,9 +37,13 @@ def _configure_logging(config):
     root_logger.setLevel(min(config.logging.console_level, config.logging.file_level))
 
 def _start(config):
-    manager = Manager(config)
-    d = manager.run()
-    d.addCallback(_finished)
+    try:
+        manager = Manager(config)
+        d = manager.run()
+        d.addCallback(_finished)
+    except Exception as e:
+        logging.error('%s', traceback.format_exc())
+        reactor.stop()
 
 def main():
     try:
