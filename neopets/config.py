@@ -13,7 +13,8 @@ Sniper = namedtuple(
     ('refresh_interval', 'auctions_to_analyze', 'bargain_threshold', 'profit_threshold',
      'interesting_keywords', 'bad_keywords', 'minimum_np_for_playing', 'minimal_auction_number',
      'item_samples', 'item_price_max_deviation', 'suspecious_yield_threshold'))
-Config = namedtuple('Config', ('account', 'misc', 'logging', 'application', 'sniper'))
+AutoPricer = namedtuple('AutoPricer', ('strategy', ))
+Config = namedtuple('Config', ('account', 'misc', 'logging', 'application', 'sniper', 'autopricer'))
 
 class ConfigurationError(Exception):
     def __init__(self, filename):
@@ -51,10 +52,13 @@ def load_from_ini_file(filename):
         cp.getfloat('sniper', 'item_price_max_deviation'),
         cp.getfloat('sniper', 'suspecious_yield_threshold'),)
 
+    autopricer = AutoPricer(
+        cp.get('autopricer', 'strategy'))
+
     application = Application(
         cp.getboolean('application', 'dailies'),
         cp.get('application', 'restockers').split(','),
         cp.getint('application', 'restocker_refresh_interval'),
         cp.getboolean('application', 'sniper'))
 
-    return Config(account, misc, logging, application, sniper)
+    return Config(account, misc, logging, application, sniper, autopricer)

@@ -28,3 +28,6 @@ minimal_auction_number = 0
 item_samples = 5
 item_price_max_deviation = 33
 suspecious_yield_threshold = 100
+
+[autopricer]
+strategy = estimated_price

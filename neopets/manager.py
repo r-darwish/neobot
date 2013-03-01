@@ -72,7 +72,7 @@ class Manager(object):
         self._sniper = SniperManager(self._account, self._shops, self._config.sniper,
                                      self._auctions_dir)
         self._sniper.on_deal.register(self._on_deal)
-        self._autopricer = AutoPricer(self._account, self._shops)
+        self._autopricer = AutoPricer(self._account, self._shops, self._config.autopricer)
 
     def _on_deal(self, auction, price):
         self._logger.info('Deal! %s (%d)', auction, price)
