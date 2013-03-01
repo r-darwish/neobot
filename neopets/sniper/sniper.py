@@ -4,7 +4,7 @@ import logging
 from twisted.internet import reactor, defer
 from neopets.shops import ShopWizardExhaustedError, ItemNotFoundInShopWizardError, \
     SomeoneBiddedHigherError
-
+from neopets.common import Event
 
 class SniperManager(object):
     def __init__(self, account, shops, config, auctions_dir):
@@ -16,6 +16,11 @@ class SniperManager(object):
         self._running = False
         self._config = config
         self._auctions_dir = auctions_dir
+        self._on_deal = Event()
+
+    @property
+    def on_deal(self):
+        return self._on_deal
 
     def run(self):
         reactor.callLater(0, self._iteration)
@@ -63,6 +68,8 @@ class SniperManager(object):
                 if not info.open:
                     sniper_logger.info('Auction closed. Won: %s', me_top)
                     self._dump_auction(auction, info)
+                    if me_top:
+                        self._on_deal.call(auction, info.bidders[0].bid)
                     return
 
                 sniper_logger.debug('Auction refreshed. Top bidder: %s. Next bid: %d',
