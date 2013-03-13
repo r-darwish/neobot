@@ -12,7 +12,7 @@ Sniper = namedtuple(
     'Sniper',
     ('refresh_interval', 'auctions_to_analyze', 'bargain_threshold', 'profit_threshold',
      'interesting_keywords', 'bad_keywords', 'minimum_np_for_playing', 'minimal_auction_number',
-     'item_samples', 'item_price_max_deviation', 'suspecious_yield_threshold'))
+     'item_samples', 'item_price_max_deviation', 'suspecious_yield_threshold', 'minimal_yield'))
 AutoPricer = namedtuple('AutoPricer', ('strategy', ))
 Config = namedtuple('Config', ('account', 'misc', 'logging', 'application', 'sniper', 'autopricer'))
 
@@ -50,7 +50,8 @@ def load_from_ini_file(filename):
         cp.getint('sniper', 'minimal_auction_number'),
         cp.getint('sniper', 'item_samples'),
         cp.getfloat('sniper', 'item_price_max_deviation'),
-        cp.getfloat('sniper', 'suspecious_yield_threshold'),)
+        cp.getfloat('sniper', 'suspecious_yield_threshold'),
+        cp.getfloat('sniper', 'minimal_yield'),)
 
     autopricer = AutoPricer(
         cp.get('autopricer', 'strategy'))

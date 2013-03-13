@@ -99,6 +99,11 @@ class SniperManager(object):
                     sniper_logger.info('Next bit will be non-profitable. Quitting it')
                     return
 
+                yield_ = (float(est_price) / next_bid - 1) * 100
+                if yield_ < self._config.minimal_yield:
+                    sniper_logger.info('Next bit will make the yield %.2f%%, which is below the minimal', yield_)
+                    return
+
                 sniper_logger.info('We\'re not at the top. Bidding for %d', next_bid)
                 d = defer.waitForDeferred(self._shops.auction_house.bid(
                     auction.id, next_bid, info.refcode))
@@ -155,6 +160,13 @@ class SniperManager(object):
            and (not self._is_interesting_keyword(auction)):
             self._logger.info(
                 'Found a suspecious bargain: %s (current price: %d, est price: %d, yield: %.2f%%, profit: %d)',
+                auction.item, auction.current_price, est_price, yield_, delta)
+            yield False, 0
+            return
+
+        if yield_ < self._config.minimal_yield:
+            self._logger.info(
+                'Found a bargain, but yield is too low: %s (current price: %d, est price: %d, yield: %.2f%%, profit: %d)',
                 auction.item, auction.current_price, est_price, yield_, delta)
             yield False, 0
             return
