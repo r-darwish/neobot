@@ -44,3 +44,27 @@ class MyShop(object):
                 int(tr.find('input', attrs={'name' : 'oldcost_%d' % (index, ) })['value'])))
 
         yield items
+
+    @defer.deferredGenerator
+    def set_prices(self, prices):
+        data = dict()
+        for item, new_price in prices.iteritems():
+            data['obj_id_%d' % (item.index, )] = item.id
+            data['oldcost_%d' % (item.index, )] = str(item.price)
+            data['cost_%d' % (item.index, )] = new_price
+            data['back_to_inv[%s]' % (item.id, )] = 0
+
+        data['type'] = 'update_prices'
+
+        d = defer.waitForDeferred(self._account.post('process_market.phtml', data=data,
+                                                     referer='market_your.phtml'))
+        yield d
+        page = d.getResult()
+        name_col = page.find('b', text='Name')
+        if not name_col:
+            if page.find('b', text='There are no items in your shop!'):
+                self._logger.info('No items in the shop')
+                return
+
+            raise PageParseError(page)
+

@@ -49,9 +49,22 @@ class AutoPricer(object):
         d = defer.waitForDeferred(self._shops.my_shop.get_main_page())
         yield d
         items = d.getResult()
+        price_set = False
 
-        for item in (x for x in items if x.price == 0):
-            d = defer.waitForDeferred(self._price(item.name))
-            yield d
-            price = d.getResult()
-            self._logger.info('Price for %s should be %d', item.name, price)
+        new_prices = dict()
+        for item in items:
+            if item.price == 0:
+                price_set = True
+                d = defer.waitForDeferred(self._price(item.name))
+                yield d
+                price = d.getResult()
+                self._logger.info('Price for %s should be %d', item.name, price)
+                new_prices[item] = price
+            else:
+                new_prices[item] = item.price
+
+        if not price_set:
+            self._logger.info('Nothing to set price to')
+            return
+
+        self._shops.my_shop.set_prices(new_prices)
