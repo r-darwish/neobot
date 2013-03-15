@@ -1,3 +1,4 @@
+import datetime
 from neopets.shops.neopianshops import NeopianShops, NeopianShop
 from neopets.shops.wizard import Wizard
 from neopets.shops.auctionhouse import AuctionHouse
@@ -10,7 +11,7 @@ class Shops(object):
         self._wizard = Wizard(account)
         self._auction_house = AuctionHouse(account)
         self._est_price_calc = EstPriceCalculator(self)
-        self._est_price_calc.calc = cache.cache(self._est_price_calc.calc)
+        self._est_price_calc.calc = cache.cache(self._est_price_calc.calc, datetime.timedelta(hours=24))
         self._my_shop = MyShop(account)
 
     @property
