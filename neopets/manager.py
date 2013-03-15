@@ -75,7 +75,7 @@ class Manager(object):
         self._autopricer = AutoPricer(self._account, self._shops, self._config.autopricer)
 
     def _on_deal(self, auction, price):
-        self._logger.info('Deal! %s (%d)', auction, price)
+        self._logger.info('Deal! %s (%d)', auction.item, price)
 
     @staticmethod
     def _create_directory(directory):
