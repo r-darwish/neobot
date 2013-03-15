@@ -80,4 +80,5 @@ class Account(object):
         if soup.find('a', text='Log in'):
             raise LoginError(page)
 
+        self._browser.save_cookies()
         return soup

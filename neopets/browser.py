@@ -1,14 +1,13 @@
 import os
 import logging
 from collections import namedtuple
-from urlparse import urlparse
 from threading import Lock
 from urllib import urlencode
 from twisted.internet.protocol import Protocol
 from twisted.internet import reactor, defer
 from twisted.web.client import Agent, CookieAgent, HTTPConnectionPool, \
     ContentDecoderAgent, GzipDecoder
-from cookielib import LWPCookieJar, CookieJar
+from cookielib import LWPCookieJar, CookieJar, LoadError
 from cStringIO import StringIO
 from twisted.web.http_headers import Headers
 from zope.interface import implements
@@ -71,16 +70,28 @@ class Browser(object):
                            cookie_file)
         if cookie_file:
             umask = os.umask(077)
-            cj = LWPCookieJar(cookie_file)
+            self._cj = LWPCookieJar(cookie_file)
+            try:
+                self._cj.load()
+            except LoadError:
+                self._logger.warning('Cannot load cookies from %s' % (cookie_file, ))
             os.umask(umask)
         else:
-            cj = CookieJar()
+            self._cj = CookieJar()
 
         pool = HTTPConnectionPool(reactor, persistent=True)
         pool.maxPersistentPerHost = 10
         self._agent = CookieAgent(ContentDecoderAgent(Agent(reactor, pool=pool),
-                                                       [('gzip', GzipDecoder)]), cj)
+                                                       [('gzip', GzipDecoder)]), self._cj)
         self._lock = Lock()
+
+    def save_cookies(self):
+        try:
+            self._cj.save()
+        except LoadError:
+            pass
+        else:
+            self._logger.debug('Cookies saved')
 
     @defer.deferredGenerator
     def _request(self, request_type, url, referer=None, body=None):
