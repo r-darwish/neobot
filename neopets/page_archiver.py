@@ -15,7 +15,7 @@ class PageArchiver(object):
 
         with self._db.engine.connect() as conn:
             result = conn.execute(query)
-            page_id = result.last_inserted_ids()[0]
+            page_id = result.inserted_primary_key[0]
 
         page_path = os.path.join(
             self._archive_dir,
